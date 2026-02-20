@@ -1,0 +1,79 @@
+"""
+Example 3: Data download and load workflow.
+
+Demonstrates:
+  1. download_data() fetches OHLCV + funding rate via CCXT and caches to CSV
+  2. data_loader utilities (generate_cache_filename, load_csv) read the cache back
+
+The downloaded data is cached to CSV files so subsequent runs skip the download.
+
+Usage:
+    python examples/03_download_and_load.py
+"""
+
+from datetime import datetime, timezone
+from vibetrading.tools import download_data
+from vibetrading.tools.data_loader import (
+    generate_cache_filename,
+    load_csv,
+    DEFAULT_PERP_SYMBOLS,
+)
+
+
+def main():
+    assets = ["BTC", "ETH"]
+    exchange = "binance"
+    interval = "1h"
+    start = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    end = datetime(2025, 6, 1, tzinfo=timezone.utc)
+
+    # Step 1: Download data for multiple assets
+    print("=" * 60)
+    print("Step 1: Downloading historical data via CCXT")
+    print("=" * 60)
+    data = download_data(
+        assets,
+        exchange=exchange,
+        start_time=start,
+        end_time=end,
+        interval=interval,
+        market_type="perp",
+    )
+
+    for key, df in data.items():
+        print(f"  {key}: {len(df)} rows, "
+              f"{df.index.min().strftime('%Y-%m-%d')} to {df.index.max().strftime('%Y-%m-%d')}")
+
+    # Step 2: Load cached data back using data_loader
+    print(f"\n{'=' * 60}")
+    print("Step 2: Loading cached data via data_loader")
+    print("=" * 60)
+
+    start_str = start.strftime("%Y-%m-%d")
+    end_str = end.strftime("%Y-%m-%d")
+
+    for asset in assets:
+        symbol = DEFAULT_PERP_SYMBOLS.get(asset, f"{asset}/USDT:USDT")
+
+        path = generate_cache_filename(
+            exchange=exchange,
+            symbol=symbol,
+            start_date=start_str,
+            end_date=end_str,
+            timeframe=interval,
+        )
+        print(f"\n  [{asset}] Cache file: {path}")
+
+        df = load_csv(path)
+        if df.empty:
+            print(f"  [{asset}] No data found in cache.")
+            continue
+
+        print(f"  [{asset}] Loaded {len(df)} rows")
+        print(f"  [{asset}] Columns: {list(df.columns)}")
+        print(f"  [{asset}] Date range: {df.index.min()} -> {df.index.max()}")
+        print(f"  [{asset}] Latest close: {df['close'].iloc[-1]:.2f}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vibetrading"
+version = "0.1.0"
+description = "Agent-first trading framework: describe strategies in natural language, generate executable code, backtest and deploy across exchanges."
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0",
+    "ccxt>=4.0",
+]
+
+[project.optional-dependencies]
+hyperliquid = [
+    "hyperliquid-python-sdk>=0.8",
+    "eth-account>=0.10",
+    "cachetools>=5.3",
+]
+extended = [
+    "x10-python-trading>=0.2",
+    "starknet-py>=0.20",
+]
+paradex = [
+    "starknet-py>=0.20",
+    "websockets>=12.0",
+]
+lighter = [
+    "lighter-v2-python>=1.0",
+    "aiohttp>=3.9",
+    "cachetools>=5.3",
+]
+aster = [
+    "eth-account>=0.10",
+    "web3>=6.0",
+    "eth-abi>=4.0",
+]
+ta = [
+    "ta>=0.11",
+]
+agent = [
+    "litellm>=1.0",
+]
+all = [
+    "vibetrading[hyperliquid,extended,paradex,lighter,aster,ta,agent]",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vibetrading*"]
