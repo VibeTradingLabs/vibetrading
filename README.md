@@ -492,8 +492,8 @@ Data is fetched from exchanges via CCXT. Download data first, then pass it to th
 ```python
 from vibetrading.tools import download_data
 
-# Download from any CCXT-supported exchange
-data = download_data(["BTC", "ETH"], exchange="binance", ...)
+# Download from any CCXT-supported exchange 
+data = download_data(["BTC", "ETH"], exchange="binance", ...) 
 data = download_data(["BTC"], exchange="bybit", ...)
 data = download_data(["BTC"], exchange="okx", ...)
 
