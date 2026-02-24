@@ -2,8 +2,8 @@
 Example 3: Data download and load workflow.
 
 Demonstrates:
-  1. download_data() fetches OHLCV + funding rate via CCXT and caches to CSV
-  2. data_loader utilities (generate_cache_filename, load_csv) read the cache back
+  1. vibetrading.tools.download_data() fetches OHLCV + funding rate via CCXT
+  2. vibetrading.tools.load_csv() and helpers read the cache back
 
 The downloaded data is cached to CSV files so subsequent runs skip the download.
 
@@ -12,12 +12,8 @@ Usage:
 """
 
 from datetime import datetime, timezone
-from vibetrading.tools import download_data
-from vibetrading.tools.data_loader import (
-    generate_cache_filename,
-    load_csv,
-    DEFAULT_PERP_SYMBOLS,
-)
+
+import vibetrading.tools
 
 
 def main():
@@ -31,7 +27,7 @@ def main():
     print("=" * 60)
     print("Step 1: Downloading historical data via CCXT")
     print("=" * 60)
-    data = download_data(
+    data = vibetrading.tools.download_data(
         assets,
         exchange=exchange,
         start_time=start,
@@ -46,16 +42,16 @@ def main():
 
     # Step 2: Load cached data back using data_loader
     print(f"\n{'=' * 60}")
-    print("Step 2: Loading cached data via data_loader")
+    print("Step 2: Loading cached data via vibetrading.tools")
     print("=" * 60)
 
     start_str = start.strftime("%Y-%m-%d")
     end_str = end.strftime("%Y-%m-%d")
 
     for asset in assets:
-        symbol = DEFAULT_PERP_SYMBOLS.get(asset, f"{asset}/USDT:USDT")
+        symbol = vibetrading.tools.DEFAULT_PERP_SYMBOLS.get(asset, f"{asset}/USDT:USDT")
 
-        path = generate_cache_filename(
+        path = vibetrading.tools.generate_cache_filename(
             exchange=exchange,
             symbol=symbol,
             start_date=start_str,
@@ -64,7 +60,7 @@ def main():
         )
         print(f"\n  [{asset}] Cache file: {path}")
 
-        df = load_csv(path)
+        df = vibetrading.tools.load_csv(path)
         if df.empty:
             print(f"  [{asset}] No data found in cache.")
             continue

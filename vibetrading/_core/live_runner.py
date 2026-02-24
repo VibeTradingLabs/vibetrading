@@ -20,9 +20,9 @@ from typing import Callable, Dict, List, Optional, Any
 import numpy as np
 import pandas as pd
 
-from ..core.sandbox_base import VibeSandboxBase, SUPPORTED_INTERVALS
-from ..core.error_handler import StrategyErrorHandler
-from ..utils.logging import log_runtime_error
+from .sandbox_base import VibeSandboxBase, SUPPORTED_INTERVALS
+from .error_handler import StrategyErrorHandler
+from .._utils.logging import log_runtime_error
 
 logger = logging.getLogger(__name__)
 

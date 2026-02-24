@@ -13,7 +13,7 @@ from typing import Optional
 
 import pandas as pd
 
-from ..config import DATASET_DIR
+from .._config import DATASET_DIR
 
 logger = logging.getLogger(__name__)
 

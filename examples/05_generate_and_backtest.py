@@ -1,7 +1,10 @@
 """
 Example 5: Generate a strategy with an LLM and backtest it end-to-end.
 
-Demonstrates the full workflow: generate() -> validate_strategy() -> BacktestEngine.run().
+Demonstrates the full workflow:
+    vibetrading.strategy.generate() -> vibetrading.strategy.validate()
+    -> vibetrading.backtest.BacktestEngine.run()
+
 Uses litellm under the hood, so any OpenAI-compatible provider works
 (OpenAI, Anthropic, Google, local models, etc.).
 
@@ -18,9 +21,9 @@ import os
 import sys
 from datetime import datetime, timezone
 
-from vibetrading import BacktestEngine, validate_strategy
-from vibetrading.agent import StrategyGenerator
-from vibetrading.tools import download_data
+import vibetrading.strategy
+import vibetrading.backtest
+import vibetrading.tools
 
 
 ASSETS = ["BTC"]
@@ -89,10 +92,8 @@ def main():
     print(f"  Prompt: {prompt}")
     print(f"  Model:  {model}\n")
 
-    generator = StrategyGenerator(model=model, temperature=0.2)
-    code = generator.generate(
-        prompt=prompt,
-    )
+    generator = vibetrading.strategy.StrategyGenerator(model=model, temperature=0.2)
+    code = generator.generate(prompt=prompt)
 
     print("  Generated strategy (first 20 lines):")
     for line in code.split("\n"):
@@ -100,7 +101,7 @@ def main():
 
     # Step 2: Validate
     print("--- Step 2: Validate strategy ---\n")
-    validation = validate_strategy(code)
+    validation = vibetrading.strategy.validate(code)
     print(f"  Valid:    {validation.is_valid}")
     print(f"  Errors:   {len(validation.errors)}")
     print(f"  Warnings: {len(validation.warnings)}")
@@ -115,7 +116,7 @@ def main():
 
     # Step 3: Download historical data
     print("\n--- Step 3: Download historical data ---\n")
-    data = download_data(
+    data = vibetrading.tools.download_data(
         ASSETS,
         exchange=EXCHANGE,
         start_time=START,
@@ -128,7 +129,7 @@ def main():
 
     # Step 4: Backtest
     print("\n--- Step 4: Run backtest ---\n")
-    engine = BacktestEngine(
+    engine = vibetrading.backtest.BacktestEngine(
         start_time=START,
         end_time=END,
         interval=INTERVAL,

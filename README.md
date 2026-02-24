@@ -23,9 +23,9 @@ pip install vibetrading
 ### Generate a Strategy from a Prompt
 
 ```python
-from vibetrading import StrategyGenerator
+import vibetrading.strategy
 
-generator = StrategyGenerator(model="gpt-4o")
+generator = vibetrading.strategy.StrategyGenerator(model="gpt-4o")
 
 code = generator.generate(
     "BTC momentum strategy: RSI(14) oversold entry, SMA crossover confirmation, "
@@ -41,14 +41,16 @@ print(code)
 
 ```python
 from datetime import datetime, timezone
-from vibetrading import StrategyGenerator, BacktestEngine
-from vibetrading.tools import download_data
+
+import vibetrading.strategy
+import vibetrading.backtest
+import vibetrading.tools
 
 start = datetime(2025, 1, 1, tzinfo=timezone.utc)
 end = datetime(2025, 6, 1, tzinfo=timezone.utc)
 
 # Step 1: Generate strategy code
-generator = StrategyGenerator(model="gpt-4o")
+generator = vibetrading.strategy.StrategyGenerator(model="gpt-4o")
 code = generator.generate(
     "ETH mean reversion with Bollinger Bands, short when price hits upper band, "
     "long when price hits lower band, 5x leverage",
@@ -57,7 +59,7 @@ code = generator.generate(
 )
 
 # Step 2: Download historical data
-data = download_data(
+data = vibetrading.tools.download_data(
     ["ETH"],
     exchange="binance",
     start_time=start,
@@ -66,16 +68,7 @@ data = download_data(
 )
 
 # Step 3: Backtest
-engine = BacktestEngine(
-    start_time=start,
-    end_time=end,
-    interval="1h",
-    exchange="binance",
-    initial_balances={"USDC": 10000},
-    data=data,
-)
-
-results = engine.run(code)
+results = vibetrading.backtest.run(code, start_time=start, end_time=end, interval="1h", data=data)
 
 if results:
     metrics = results["metrics"]
@@ -91,9 +84,9 @@ Don't want to use the built-in generator? Use the prompt template directly with 
 
 ```python
 import openai
-from vibetrading.agent import build_generation_prompt
+import vibetrading.strategy
 
-messages = build_generation_prompt(
+messages = vibetrading.strategy.build_generation_prompt(
     "BTC grid strategy with 0.25% spacing, 72 levels per side, 5x leverage",
     assets=["BTC"],
     market_type="perp",
@@ -108,9 +101,9 @@ Or with Anthropic:
 
 ```python
 import anthropic
-from vibetrading.agent import STRATEGY_SYSTEM_PROMPT, build_generation_prompt
+import vibetrading.strategy
 
-messages = build_generation_prompt("SOL scalping with VWAP and RSI")
+messages = vibetrading.strategy.build_generation_prompt("SOL scalping with VWAP and RSI")
 
 client = anthropic.Anthropic()
 response = client.messages.create(
@@ -127,9 +120,9 @@ strategy_code = response.content[0].text
 Check generated strategy code for common errors before running:
 
 ```python
-from vibetrading import validate_strategy
+import vibetrading.strategy
 
-result = validate_strategy(strategy_code)
+result = vibetrading.strategy.validate(strategy_code)
 
 if result.is_valid:
     print("Strategy passed validation")
@@ -209,18 +202,21 @@ def my_strategy():
         long(ASSET, qty, price=current_price)
 ```
 
+> **Note:** Strategy code uses `from vibetrading import vibe, get_price, ...` — these symbols are injected at runtime by the backtest engine or live runner. They don't need to be real functions in the package.
+
 ### Backtest
 
 ```python
 from datetime import datetime, timezone
-from vibetrading import BacktestEngine
-from vibetrading.tools import download_data
+
+import vibetrading.backtest
+import vibetrading.tools
 
 start = datetime(2025, 1, 1, tzinfo=timezone.utc)
 end = datetime(2025, 7, 1, tzinfo=timezone.utc)
 
 # Step 1: Download historical data
-data = download_data(
+data = vibetrading.tools.download_data(
     ["BTC"],
     exchange="binance",
     start_time=start,
@@ -229,7 +225,7 @@ data = download_data(
 )
 
 # Step 2: Run backtest with pre-downloaded data
-engine = BacktestEngine(
+engine = vibetrading.backtest.BacktestEngine(
     start_time=start,
     end_time=end,
     interval="1h",
@@ -257,15 +253,15 @@ Same strategy code. Same API. Different runtime.
 
 ```python
 import asyncio
-from vibetrading import create_sandbox, LiveRunner
+import vibetrading.sandbox
 
-sandbox = create_sandbox(
+sandbox = vibetrading.sandbox.create(
     "hyperliquid",
     api_key="0xYourWalletAddress",
     api_secret="0xYourPrivateKey",
 )
 
-runner = LiveRunner(sandbox, interval="1m")
+runner = vibetrading.sandbox.LiveRunner(sandbox, interval="1m")
 runner.load_strategy(strategy_code)
 asyncio.run(runner.start())
 ```
@@ -308,7 +304,7 @@ def strategy():
 
 ### The Sandbox Interface
 
-All trading operations go through a unified interface (`VibeSandboxBase`). Whether you are backtesting or live trading, the API is identical:
+All trading operations go through a unified interface (`SandboxBase`). Whether you are backtesting or live trading, the API is identical:
 
 | Category | Functions |
 |---|---|
@@ -323,6 +319,16 @@ All trading operations go through a unified interface (`VibeSandboxBase`). Wheth
 | **Orders** | `get_perp_open_orders()`, `get_spot_open_orders()`, `cancel_perp_orders(asset, ids)` |
 | **Time** | `get_current_time()` |
 
+### Package Modules
+
+```
+import vibetrading.strategy   # generate & validate strategies from prompts
+import vibetrading.backtest   # backtest engine (BacktestEngine, run())
+import vibetrading.sandbox    # exchange sandboxes & live runner
+import vibetrading.tools      # data download & CSV loading
+import vibetrading.models     # order & position data models
+```
+
 ### Architecture
 
 ```
@@ -331,7 +337,7 @@ User Prompt (natural language)
          ▼
 ┌─────────────────────────┐
 │   LLM Agent             │  ← any model (GPT, Claude, Gemini, ...)
-│   + prompt template     │  ← STRATEGY_SYSTEM_PROMPT
+│   + prompt template     │  ← vibetrading.strategy.STRATEGY_SYSTEM_PROMPT
 └────────┬────────────────┘
          │ generates
          ▼
@@ -353,7 +359,7 @@ Static     Exchange
 Sandbox    Sandbox
     │      (Hyperliquid, Paradex,
     ▼       Extended, Lighter, ...)
-tools/data_downloader
+vibetrading.tools
 (CCXT → CSV cache)
 ```
 
@@ -415,26 +421,25 @@ The structured `@vibe` interface makes VibeTrading a composable skill for autono
 
 | Component | Import | Purpose |
 |---|---|---|
-| `STRATEGY_SYSTEM_PROMPT` | `from vibetrading.agent import STRATEGY_SYSTEM_PROMPT` | Complete system prompt for LLM strategy generation |
-| `VIBETRADING_API_REFERENCE` | `from vibetrading.agent import VIBETRADING_API_REFERENCE` | API documentation string |
-| `STRATEGY_CONSTRAINTS` | `from vibetrading.agent import STRATEGY_CONSTRAINTS` | Code generation rules |
-| `build_generation_prompt()` | `from vibetrading.agent import build_generation_prompt` | Build message list for chat completion |
-| `validate_strategy()` | `from vibetrading import validate_strategy` | Validate generated code |
-| `StrategyGenerator` | `from vibetrading import StrategyGenerator` | Full generation + validation pipeline |
+| `STRATEGY_SYSTEM_PROMPT` | `vibetrading.strategy.STRATEGY_SYSTEM_PROMPT` | Complete system prompt for LLM strategy generation |
+| `VIBETRADING_API_REFERENCE` | `vibetrading.strategy.VIBETRADING_API_REFERENCE` | API documentation string |
+| `STRATEGY_CONSTRAINTS` | `vibetrading.strategy.STRATEGY_CONSTRAINTS` | Code generation rules |
+| `build_generation_prompt()` | `vibetrading.strategy.build_generation_prompt` | Build message list for chat completion |
+| `validate()` | `vibetrading.strategy.validate` | Validate generated code |
+| `StrategyGenerator` | `vibetrading.strategy.StrategyGenerator` | Full generation + validation pipeline |
 
 ### Closed-Loop Generation
 
 The validator produces structured feedback that can be fed back to the LLM:
 
 ```python
-from vibetrading import StrategyGenerator, validate_strategy
-from vibetrading.agent import build_generation_prompt
+import vibetrading.strategy
 
-messages = build_generation_prompt("BTC scalping strategy with VWAP")
+messages = vibetrading.strategy.build_generation_prompt("BTC scalping strategy with VWAP")
 
 # First attempt
 code = call_your_llm(messages)
-result = validate_strategy(code)
+result = vibetrading.strategy.validate(code)
 
 if not result.is_valid:
     # Feed errors back
@@ -448,7 +453,9 @@ if not result.is_valid:
 Or use `StrategyGenerator` which handles this automatically:
 
 ```python
-generator = StrategyGenerator(model="gpt-4o")
+import vibetrading.strategy
+
+generator = vibetrading.strategy.StrategyGenerator(model="gpt-4o")
 code = generator.generate("BTC scalping", validate=True, max_retries=3)
 ```
 
@@ -490,15 +497,16 @@ results["simulation_info"]  # Metadata (steps, time range, liquidation status)
 Data is fetched from exchanges via CCXT. Download data first, then pass it to the backtest engine:
 
 ```python
-from vibetrading.tools import download_data
+import vibetrading.tools
+import vibetrading.backtest
 
-# Download from any CCXT-supported exchange 
-data = download_data(["BTC", "ETH"], exchange="binance", ...) 
-data = download_data(["BTC"], exchange="bybit", ...)
-data = download_data(["BTC"], exchange="okx", ...)
+# Download from any CCXT-supported exchange
+data = vibetrading.tools.download_data(["BTC", "ETH"], exchange="binance", ...)
+data = vibetrading.tools.download_data(["BTC"], exchange="bybit", ...)
+data = vibetrading.tools.download_data(["BTC"], exchange="okx", ...)
 
 # Pass to BacktestEngine
-engine = BacktestEngine(exchange="binance", data=data, ...)
+engine = vibetrading.backtest.BacktestEngine(exchange="binance", data=data, ...)
 ```
 
 ---
@@ -508,9 +516,9 @@ engine = BacktestEngine(exchange="binance", data=data, ...)
 ### Step 1: Create a Sandbox
 
 ```python
-from vibetrading import create_sandbox
+import vibetrading.sandbox
 
-sandbox = create_sandbox(
+sandbox = vibetrading.sandbox.create(
     "hyperliquid",
     api_key="0xYourWalletAddress",
     api_secret="0xYourPrivateKey",
@@ -520,9 +528,7 @@ sandbox = create_sandbox(
 ### Step 2: Load Strategy
 
 ```python
-from vibetrading import LiveRunner
-
-runner = LiveRunner(sandbox, interval="1m")
+runner = vibetrading.sandbox.LiveRunner(sandbox, interval="1m")
 runner.load_strategy(strategy_code)
 ```
 
@@ -555,12 +561,12 @@ runner.cleanup()
 
 ### Adding a Custom Exchange
 
-Implement the `VibeSandboxBase` interface:
+Implement the `SandboxBase` interface:
 
 ```python
-from vibetrading.core.sandbox_base import VibeSandboxBase
+from vibetrading.sandbox import SandboxBase
 
-class MyExchangeSandbox(VibeSandboxBase):
+class MyExchangeSandbox(SandboxBase):
     def get_price(self, asset: str) -> float:
         ...
 
@@ -568,6 +574,49 @@ class MyExchangeSandbox(VibeSandboxBase):
         ...
 
     # ... implement all abstract methods
+```
+
+---
+
+## Project Structure
+
+```
+vibetrading/
+├── __init__.py         # Package root (vibe decorator + version)
+├── strategy.py         # → vibetrading.strategy (generate, validate, prompts)
+├── backtest.py         # → vibetrading.backtest (BacktestEngine, run())
+├── sandbox.py          # → vibetrading.sandbox (SandboxBase, LiveRunner, create)
+├── tools.py            # → vibetrading.tools (download_data, load_csv)
+├── models.py           # → vibetrading.models (order & position types)
+├── _config.py          # Configuration & exchange registry
+├── _agent/             # Strategy generation internals
+│   ├── prompt.py       #   System prompt, API reference, constraints
+│   ├── generator.py    #   StrategyGenerator
+│   └── validator.py    #   validate_strategy()
+├── _core/              # Core engine internals
+│   ├── sandbox_base.py #   VibeSandboxBase (abstract interface)
+│   ├── decorator.py    #   @vibe decorator
+│   ├── backtest.py     #   BacktestEngine
+│   ├── static_sandbox.py # Backtesting sandbox
+│   ├── live_runner.py  #   LiveRunner
+│   └── error_handler.py #  Strategy error capture
+├── _exchanges/         # Exchange adapters
+│   ├── base.py         #   LiveSandboxBase
+│   ├── hyperliquid.py  #   Hyperliquid
+│   ├── extended.py     #   X10 Extended
+│   ├── paradex.py      #   Paradex
+│   ├── lighter.py      #   Lighter
+│   └── aster.py        #   Aster
+├── _models/            # Data models
+│   ├── orders.py       #   Order & position models
+│   └── types.py        #   Market metadata & enums
+├── _metrics/           # Performance metrics
+│   └── calculator.py
+├── _tools/             # Data acquisition internals
+│   ├── data_downloader.py  # download_data() + CCXT
+│   └── data_loader.py     # CSV cache + symbol mappings
+└── _utils/             # Utilities
+    ├── math.py, json.py, cache.py, notification.py, logging.py
 ```
 
 ---
@@ -582,58 +631,6 @@ Environment variables (optional):
 | `{EXCHANGE}_API_KEY` | Per-exchange API key (e.g. `BINANCE_API_KEY`) | `None` |
 | `{EXCHANGE}_API_SECRET` | Per-exchange API secret (e.g. `BINANCE_API_SECRET`) | `None` |
 | `{EXCHANGE}_PASSWORD` | Per-exchange passphrase (OKX, KuCoin, etc.) | `None` |
-| *(removed)* | Dataset directory is always `<cwd>/vibetrading/dataset` | — |
-
-Exchange credentials can also be set programmatically (CCXT-compatible dict):
-
-```python
-from vibetrading.config import EXCHANGES
-
-EXCHANGES["binance"] = {"apiKey": "...", "secret": "..."}
-EXCHANGES["okx"] = {"apiKey": "...", "secret": "...", "password": "..."}
-```
-
----
-
-## Project Structure
-
-```
-vibetrading/
-├── __init__.py              # Public API
-├── config.py                # Configuration
-├── agent/
-│   ├── prompt.py            # System prompt, API reference, constraints
-│   ├── generator.py         # StrategyGenerator + generate_strategy()
-│   └── validator.py         # validate_strategy()
-├── core/
-│   ├── sandbox_base.py      # VibeSandboxBase (abstract interface)
-│   ├── decorator.py         # @vibe decorator
-│   ├── error_handler.py     # Strategy error capture
-│   ├── static_sandbox.py    # Backtesting sandbox
-│   ├── backtest.py          # BacktestEngine
-│   └── live_runner.py       # LiveRunner
-├── exchanges/
-│   ├── base.py              # LiveSandboxBase
-│   ├── hyperliquid.py       # Hyperliquid adapter
-│   ├── extended.py          # X10 Extended adapter
-│   ├── paradex.py           # Paradex adapter
-│   ├── lighter.py           # Lighter adapter
-│   └── aster.py             # Aster adapter
-├── models/
-│   ├── orders.py            # Order & position models
-│   └── types.py             # Market metadata & enums
-├── metrics/
-│   └── calculator.py        # Performance metrics
-├── tools/
-│   ├── data_downloader.py   # download_data() + CCXT data fetching
-│   └── data_loader.py       # CSV cache loading + symbol mappings
-└── utils/
-    ├── math.py              # Numeric precision
-    ├── json.py              # Serialization
-    ├── cache.py             # API call caching
-    ├── notification.py      # Error deduplication
-    └── logging.py           # Structured logging
-```
 
 ---
 

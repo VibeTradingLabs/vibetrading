@@ -2,16 +2,17 @@
 Example 1: Backtest a manually written SMA crossover strategy.
 
 Demonstrates the explicit download -> backtest workflow:
-  1. download_data() fetches historical OHLCV from Binance
-  2. BacktestEngine receives the data and runs the strategy
+  1. vibetrading.tools.download_data() fetches historical OHLCV from Binance
+  2. vibetrading.backtest.BacktestEngine receives the data and runs the strategy
 
 Usage:
     python examples/01_backtest_sma_crossover.py
 """
 
 from datetime import datetime, timezone
-from vibetrading import BacktestEngine
-from vibetrading.tools import download_data
+
+import vibetrading.backtest
+import vibetrading.tools
 
 strategy_code = """
 import math
@@ -87,7 +88,7 @@ def main():
 
     # Step 1: Download data explicitly
     print("Step 1: Downloading historical data from Binance...\n")
-    data = download_data(
+    data = vibetrading.tools.download_data(
         ["BTC"],
         exchange="binance",
         start_time=start,
@@ -99,7 +100,7 @@ def main():
 
     # Step 2: Run backtest with pre-downloaded data
     print("Step 2: Running backtest: SMA Crossover on BTC...\n")
-    engine = BacktestEngine(
+    engine = vibetrading.backtest.BacktestEngine(
         start_time=start,
         end_time=end,
         interval="1h",

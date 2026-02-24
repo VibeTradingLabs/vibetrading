@@ -21,8 +21,8 @@ import pandas as pd
 from .sandbox_base import SUPPORTED_INTERVALS
 from .static_sandbox import StaticSandbox
 from .error_handler import StrategyErrorHandler
-from ..metrics.calculator import MetricsCalculator
-from ..utils.logging import (
+from .._metrics.calculator import MetricsCalculator
+from .._utils.logging import (
     log_portfolio_update,
     log_pnl_update,
     log_metrics_update,
@@ -157,7 +157,7 @@ class BacktestEngine:
     @staticmethod
     def _convert_data_keys(data: Dict, interval: str) -> Dict:
         """Convert 'ASSET/interval' keyed data to '(symbol, interval)' for sandbox."""
-        from ..tools.data_loader import DEFAULT_PERP_SYMBOLS, DEFAULT_SPOT_SYMBOLS
+        from .._tools.data_loader import DEFAULT_PERP_SYMBOLS, DEFAULT_SPOT_SYMBOLS
         converted = {}
         for key, df in data.items():
             if isinstance(key, tuple):

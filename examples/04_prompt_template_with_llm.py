@@ -1,9 +1,10 @@
 """
 Example 4: Use VibeTrading prompt templates with your own LLM client.
 
-Shows how to use build_generation_prompt() and validate_strategy() directly,
-without the built-in StrategyGenerator. This lets you integrate VibeTrading
-into any LLM pipeline (OpenAI, Anthropic, local models, etc.).
+Shows how to use vibetrading.strategy.build_generation_prompt() and
+vibetrading.strategy.validate() directly, without the built-in
+StrategyGenerator. This lets you integrate VibeTrading into any LLM
+pipeline (OpenAI, Anthropic, local models, etc.).
 
 Usage:
     # Set your API key first
@@ -13,8 +14,8 @@ Usage:
 """
 
 import os
-from vibetrading import validate_strategy
-from vibetrading.agent import build_generation_prompt, STRATEGY_SYSTEM_PROMPT
+
+import vibetrading.strategy
 
 
 def generate_with_openai(user_prompt: str) -> str:
@@ -24,7 +25,7 @@ def generate_with_openai(user_prompt: str) -> str:
     except ImportError:
         raise ImportError("pip install openai")
 
-    messages = build_generation_prompt(
+    messages = vibetrading.strategy.build_generation_prompt(
         user_prompt,
         assets=["BTC"],
         market_type="perp",
@@ -47,7 +48,10 @@ def generate_with_anthropic(user_prompt: str) -> str:
     except ImportError:
         raise ImportError("pip install anthropic")
 
-    messages = build_generation_prompt(user_prompt, assets=["BTC"])
+    messages = vibetrading.strategy.build_generation_prompt(
+        user_prompt,
+        assets=["BTC"],
+    )
 
     client = anthropic.Anthropic()
     response = client.messages.create(
@@ -72,7 +76,11 @@ def closed_loop_generation(user_prompt: str, max_retries: int = 2) -> str:
         raise ImportError("pip install openai")
 
     client = openai.OpenAI()
-    messages = build_generation_prompt(user_prompt, assets=["BTC"], max_leverage=5)
+    messages = vibetrading.strategy.build_generation_prompt(
+        user_prompt,
+        assets=["BTC"],
+        max_leverage=5,
+    )
 
     for attempt in range(max_retries + 1):
         response = client.chat.completions.create(
@@ -90,7 +98,7 @@ def closed_loop_generation(user_prompt: str, max_retries: int = 2) -> str:
                 lines = lines[:-1]
             code = "\n".join(lines)
 
-        result = validate_strategy(code)
+        result = vibetrading.strategy.validate(code)
         if result.is_valid:
             print(f"  Validation passed on attempt {attempt + 1}")
             return code
@@ -111,7 +119,7 @@ def main():
 
     # Show the prompt structure
     print("\n--- Prompt structure ---\n")
-    messages = build_generation_prompt(
+    messages = vibetrading.strategy.build_generation_prompt(
         "BTC momentum with RSI oversold entry",
         assets=["BTC"],
         market_type="perp",
@@ -131,7 +139,7 @@ def main():
         print("Showing prompt template only.\n")
 
         print("System prompt (first 500 chars):")
-        print(STRATEGY_SYSTEM_PROMPT[:500])
+        print(vibetrading.strategy.STRATEGY_SYSTEM_PROMPT[:500])
         print("...\n")
         return
 
@@ -149,7 +157,7 @@ def main():
         print("  ...")
 
         print("\n--- Validating ---\n")
-        result = validate_strategy(code)
+        result = vibetrading.strategy.validate(code)
         print(f"Valid: {result.is_valid}")
         if result.errors:
             for e in result.errors:
@@ -176,7 +184,7 @@ def main():
         print("  ...")
 
         print("\n--- Validating ---\n")
-        result = validate_strategy(code)
+        result = vibetrading.strategy.validate(code)
         print(f"Valid: {result.is_valid}")
         if result.errors:
             for e in result.errors:

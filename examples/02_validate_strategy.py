@@ -1,14 +1,14 @@
 """
 Example 2: Validate strategy code before running.
 
-Demonstrates using validate_strategy() to catch common issues in strategy
-code — missing decorators, leverage not set, hardcoded balances, etc.
+Demonstrates using vibetrading.strategy.validate() to catch common issues
+in strategy code — missing decorators, leverage not set, hardcoded balances, etc.
 
 Usage:
     python examples/02_validate_strategy.py
 """
 
-from vibetrading import validate_strategy
+import vibetrading.strategy
 
 
 # ── Good strategy (passes validation) ──────────────────────────────────
@@ -90,7 +90,7 @@ def main():
 
     # Validate the good strategy
     print("\n--- Validating good strategy ---\n")
-    result = validate_strategy(good_strategy)
+    result = vibetrading.strategy.validate(good_strategy)
     print(f"Valid: {result.is_valid}")
     print(f"Errors: {len(result.errors)}")
     print(f"Warnings: {len(result.warnings)}")
@@ -101,7 +101,7 @@ def main():
 
     # Validate the bad strategy
     print("--- Validating bad strategy ---\n")
-    result = validate_strategy(bad_strategy)
+    result = vibetrading.strategy.validate(bad_strategy)
     print(f"Valid: {result.is_valid}")
     print(f"Errors: {len(result.errors)}")
     for e in result.errors:

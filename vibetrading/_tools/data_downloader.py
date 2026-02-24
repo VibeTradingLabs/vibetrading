@@ -25,7 +25,7 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 
-from ..config import DATASET_DIR, DEFAULT_EXCHANGE, EXCHANGES
+from .._config import DATASET_DIR, DEFAULT_EXCHANGE, EXCHANGES
 from .data_loader import (
     DEFAULT_PERP_SYMBOLS,
     DEFAULT_SPOT_SYMBOLS,
