@@ -8,7 +8,7 @@ Demonstrates the explicit download -> backtest workflow:
 Usage:
     python examples/01_backtest_sma_crossover.py
 """
-
+import os
 from datetime import datetime, timezone
 
 import vibetrading.backtest
@@ -95,6 +95,7 @@ def main():
         end_time=end,
         interval="1h",
         market_type="perp",
+        # proxy=os.environ["HTTPS_PROXY"]
     )
     print(f"\nDownloaded {len(data)} dataset(s).\n")
 

@@ -48,6 +48,8 @@ def download_data(
     force_refresh: bool = False,
     include_funding: bool = True,
     include_oi: bool = True,
+    proxy: Optional[str] = None,
+    timeout: int = 30000,
 ) -> Dict[str, pd.DataFrame]:
     """
     Download historical market data and save to CSV cache.
@@ -59,14 +61,17 @@ def download_data(
     Args:
         assets: List of asset symbols (e.g., ``["BTC", "ETH", "SOL"]``).
         exchange: CCXT exchange identifier (default: ``"binance"``).
-        start_time: Start time for data (default: 2025-01-01 UTC).
-        end_time: End time for data (default: 6 months after start).
+        start_time: Start time for data (default: ``end_time - 180 days``).
+        end_time: End time for data (default: current UTC time).
         interval: Candle interval (e.g., ``"1h"``, ``"5m"``, ``"1d"``).
         market_type: ``"perp"`` for futures or ``"spot"`` for spot data.
         data_dir: Directory to save downloaded CSV files.
         force_refresh: Re-download even if cached data exists.
         include_funding: Fetch and merge funding rate data (perp only).
         include_oi: Fetch and merge open interest data (perp only).
+        proxy: HTTPS proxy URL (e.g., ``"http://127.0.0.1:7890"``).
+            Falls back to the ``HTTPS_PROXY`` / ``HTTP_PROXY`` env var.
+        timeout: Request timeout in milliseconds (default: 30 000).
 
     Returns:
         Dict mapping ``"ASSET/INTERVAL"`` keys to DataFrames with columns
@@ -76,10 +81,10 @@ def download_data(
     """
     import numpy as np
 
-    if start_time is None:
-        start_time = datetime(2025, 1, 1, tzinfo=timezone.utc)
     if end_time is None:
-        end_time = start_time + timedelta(days=180)
+        end_time = datetime.now(tz=timezone.utc)
+    if start_time is None:
+        start_time = end_time - timedelta(days=30)
 
     if start_time.tzinfo is None:
         start_time = start_time.replace(tzinfo=timezone.utc)
@@ -96,7 +101,7 @@ def download_data(
     end_ms = int(fetch_end.timestamp() * 1000)
 
     os.makedirs(data_dir, exist_ok=True)
-    tool = _CcxtClient(exchange_id=exchange)
+    tool = _CcxtClient(exchange_id=exchange, proxy=proxy, timeout=timeout)
 
     symbol_map = DEFAULT_PERP_SYMBOLS if market_type == "perp" else DEFAULT_SPOT_SYMBOLS
     is_futures = market_type == "perp"
@@ -286,18 +291,43 @@ def _merge_open_interest(
 class _CcxtClient:
     """Low-level CCXT wrapper for historical data fetching."""
 
-    def __init__(self, exchange_id: str | None = None):
+    def __init__(
+        self,
+        exchange_id: str | None = None,
+        proxy: str | None = None,
+        timeout: int = 30000,
+    ):
         self.exchange_id = (exchange_id or DEFAULT_EXCHANGE).lower()
+        self._proxy = proxy
+        self._timeout = timeout
         self._exchange = None
 
     _AUTH_KEYS = {"apiKey", "secret", "password", "walletAddress", "privateKey"}
+
+    def _resolve_proxy(self) -> str | None:
+        if self._proxy:
+            return self._proxy
+        return (
+            os.environ.get("HTTPS_PROXY")
+            or os.environ.get("https_proxy")
+            or os.environ.get("HTTP_PROXY")
+            or os.environ.get("http_proxy")
+        )
 
     def _get_exchange(self):
         """Lazily initialize the CCXT exchange client (public endpoints only)."""
         if self._exchange is None:
             import ccxt
 
-            config: dict = {"enableRateLimit": True}
+            config: dict = {
+                "enableRateLimit": True,
+                "timeout": self._timeout,
+            }
+            proxy = self._resolve_proxy()
+            if proxy:
+                config["httpsProxy"] = proxy
+                logger.info("Using proxy: %s", proxy)
+
             exchange_cfg = EXCHANGES.get(self.exchange_id, {})
             config.update(
                 {k: v for k, v in exchange_cfg.items() if k not in self._AUTH_KEYS}
@@ -307,6 +337,23 @@ class _CcxtClient:
             if exchange_class is None:
                 exchange_class = ccxt.binance
             self._exchange = exchange_class(config)
+
+            try:
+                self._exchange.load_markets()
+            except ccxt.RequestTimeout:
+                raise ConnectionError(
+                    f"Cannot reach {self.exchange_id} API (request timed out). "
+                    f"If you are behind a firewall / in a restricted region, "
+                    f"set the `proxy` parameter or the HTTPS_PROXY env var.\n"
+                    f"  Example: download_data([...], proxy='http://127.0.0.1:7890')\n"
+                    f"  Or:      export HTTPS_PROXY=http://127.0.0.1:7890"
+                ) from None
+            except ccxt.NetworkError as exc:
+                raise ConnectionError(
+                    f"Network error connecting to {self.exchange_id}: {exc}\n"
+                    f"Check your internet connection or configure a proxy via "
+                    f"the `proxy` parameter or the HTTPS_PROXY env var."
+                ) from None
         return self._exchange
 
     @staticmethod
@@ -406,6 +453,11 @@ class _CcxtClient:
             logger.warning("Error fetching funding rates for %s: %s", symbol, e)
         return pd.DataFrame()
 
+    _OI_MAX_DAYS: dict[str, int] = {
+        "5m": 2, "15m": 30, "30m": 30, "1h": 30,
+        "2h": 90, "4h": 90, "6h": 90, "12h": 90, "1d": 180,
+    }
+
     def fetch_open_interest_history(
         self,
         symbol: str,
@@ -418,9 +470,17 @@ class _CcxtClient:
             if not hasattr(exchange, "fetch_open_interest_history"):
                 return pd.DataFrame()
 
+            max_days = self._OI_MAX_DAYS.get(timeframe, 30)
+            effective_days = min(days_back, max_days)
+            if effective_days < days_back:
+                logger.info(
+                    "OI history for %s capped to %d days (exchange limit for %s)",
+                    symbol, max_days, timeframe,
+                )
+
             since_ms = int(
                 (
-                    datetime.now(tz=timezone.utc) - timedelta(days=days_back)
+                    datetime.now(tz=timezone.utc) - timedelta(days=effective_days)
                 ).timestamp()
                 * 1000
             )

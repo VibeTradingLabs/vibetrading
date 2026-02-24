@@ -7,11 +7,17 @@ Demonstrates:
 
 The downloaded data is cached to CSV files so subsequent runs skip the download.
 
+If the exchange API is unreachable (e.g. behind a firewall), pass the
+``proxy`` parameter or set the ``HTTPS_PROXY`` environment variable::
+
+    export HTTPS_PROXY=http://127.0.0.1:7890
+    python examples/03_download_and_load.py
+
 Usage:
     python examples/03_download_and_load.py
 """
-
-from datetime import datetime, timezone
+import os
+from datetime import datetime, timezone, timedelta
 
 import vibetrading.tools
 
@@ -20,8 +26,9 @@ def main():
     assets = ["BTC", "ETH"]
     exchange = "binance"
     interval = "1h"
-    start = datetime(2025, 1, 1, tzinfo=timezone.utc)
-    end = datetime(2025, 6, 1, tzinfo=timezone.utc)
+
+    end = datetime.now(tz=timezone.utc)
+    start = end - timedelta(days=30)
 
     # Step 1: Download data for multiple assets
     print("=" * 60)
@@ -34,11 +41,15 @@ def main():
         end_time=end,
         interval=interval,
         market_type="perp",
+        # proxy=os.environ["HTTPS_PROXY"], // if you need proxy
     )
 
     for key, df in data.items():
-        print(f"  {key}: {len(df)} rows, "
-              f"{df.index.min().strftime('%Y-%m-%d')} to {df.index.max().strftime('%Y-%m-%d')}")
+        if df.empty:
+            print(f"  {key}: empty (download failed or no data)")
+        else:
+            print(f"  {key}: {len(df)} rows, "
+                  f"{df.index.min().strftime('%Y-%m-%d')} to {df.index.max().strftime('%Y-%m-%d')}")
 
     # Step 2: Load cached data back using data_loader
     print(f"\n{'=' * 60}")
