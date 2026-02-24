@@ -1,14 +1,14 @@
 """
 Exchange sandbox implementations.
 
-Each exchange module provides a concrete sandbox that extends VibeSandboxBase
-for live trading on that exchange. The factory function `create_sandbox()`
-is the recommended way to instantiate a sandbox.
+The factory function `create_sandbox()` is the recommended way to instantiate
+an exchange sandbox. Exchange SDKs are lazily imported so they're only
+required when actually creating a sandbox for that exchange.
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional
 
-from ..core.sandbox_base import VibeSandboxBase
+from .._core.sandbox_base import VibeSandboxBase
 
 
 SUPPORTED_EXCHANGES = [

@@ -1,8 +1,8 @@
 """
-Paradex exchange sandbox for live trading on StarkNet.
+Lighter exchange sandbox for live trading on zkSync Era.
 
-Requires: pip install vibetrading[paradex]
-  (starknet-py, requests, websockets)
+Requires: pip install vibetrading[lighter]
+  (lighter-v2-python)
 """
 
 import logging
@@ -11,48 +11,60 @@ from typing import Dict, List, Any, Optional
 import pandas as pd
 
 from .base import LiveSandboxBase
-from ..models.orders import (
-    PerpAccountSummary, PerpPositionSummary, SpotAccountSummary,
+from .._models.orders import (
+    PerpAccountSummary, SpotAccountSummary,
     CancelOrdersResponse, PerpOrderResponse, PerpOrder,
+    SpotOrderResponse, SpotOrder,
 )
-from ..utils.notification import NotificationDeduplicator
+from .._utils.notification import NotificationDeduplicator
+from .._utils.cache import CachedAPICall
 
 logger = logging.getLogger(__name__)
 
+try:
+    from lighter.signer_client import SignerClient
+    import lighter
+    _HAS_LIGHTER = True
+except ImportError:
+    _HAS_LIGHTER = False
 
-class ParadexSandbox(LiveSandboxBase):
-    """Live trading sandbox for Paradex on StarkNet (perps + JWT auth)."""
 
-    BASE_URL = "https://api.prod.paradex.trade"
+class LighterSandbox(LiveSandboxBase):
+    """Live trading sandbox for Lighter on zkSync Era (rate-limit protected)."""
 
     def __init__(
         self,
         api_key: Optional[str] = None,
         api_secret: Optional[str] = None,
         mode: str = "live",
-        account_address: Optional[str] = None,
-        private_key: Optional[str] = None,
+        address: Optional[str] = None,
+        api_key_index: int = 0,
         notification_deduplicator: Optional[NotificationDeduplicator] = None,
         **kwargs,
     ):
+        if not _HAS_LIGHTER:
+            raise ImportError(
+                "lighter SDK not installed. Install with: "
+                "pip install vibetrading[lighter]"
+            )
+
         super().__init__(
-            exchange_name="paradex",
-            api_key=api_key or account_address,
-            api_secret=api_secret or private_key,
+            exchange_name="lighter",
+            api_key=api_key or address,
+            api_secret=api_secret,
             mode=mode,
             notification_deduplicator=notification_deduplicator,
             **kwargs,
         )
-        self.account_address = account_address or api_key
-        self.private_key = private_key or api_secret
-        logger.info("ParadexSandbox ready (mode=%s)", mode)
+        self.account_address = address or api_key
+        logger.info("LighterSandbox ready (mode=%s)", mode)
 
-    # -- Stub implementations (same pattern as Extended) ---------------
+    # -- Stub implementations -----------------------------------------
     def get_price(self, asset):
         raise NotImplementedError
 
     def get_spot_price(self, asset):
-        raise NotImplementedError("Spot not supported on Paradex")
+        return self.get_price(asset)
 
     def get_perp_price(self, asset):
         return self.get_price(asset)
@@ -64,10 +76,10 @@ class ParadexSandbox(LiveSandboxBase):
         raise NotImplementedError
 
     def buy(self, asset, quantity, price, order_type="limit"):
-        raise NotImplementedError("Spot not supported on Paradex")
+        raise NotImplementedError
 
     def sell(self, asset, quantity, price, order_type="limit"):
-        raise NotImplementedError("Spot not supported on Paradex")
+        raise NotImplementedError
 
     def long(self, asset, quantity, price, order_type="limit"):
         raise NotImplementedError

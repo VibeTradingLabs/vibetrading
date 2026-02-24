@@ -9,7 +9,7 @@ import traceback
 from typing import Callable, Optional, Dict
 from functools import wraps
 
-from ..utils.logging import log_runtime_error
+from .._utils.logging import log_runtime_error
 
 
 class StrategyErrorHandler:
