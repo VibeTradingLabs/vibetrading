@@ -10,9 +10,12 @@ Usage:
 """
 import os
 from datetime import datetime, timezone
+from dotenv import load_dotenv
 
 import vibetrading.backtest
 import vibetrading.tools
+
+load_dotenv()
 
 strategy_code = """
 import math

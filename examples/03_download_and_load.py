@@ -18,9 +18,11 @@ Usage:
 """
 import os
 from datetime import datetime, timezone, timedelta
+from dotenv import load_dotenv
 
 import vibetrading.tools
 
+load_dotenv()
 
 def main():
     assets = ["BTC", "ETH"]

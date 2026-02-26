@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "ccxt>=4.0",
     "litellm>=1.80.0",
+    "ta>=0.11"
 ]
 
 [project.optional-dependencies]
@@ -42,11 +43,9 @@ aster = [
     "web3>=6.0",
     "eth-abi>=4.0",
 ]
-ta = [
-    "ta>=0.11",
-]
+
 all = [
-    "vibetrading[hyperliquid,extended,paradex,lighter,aster,ta]",
+    "vibetrading[hyperliquid,extended,paradex,lighter,aster]",
 ]
 
 [tool.setuptools.packages.find]

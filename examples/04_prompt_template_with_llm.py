@@ -14,9 +14,11 @@ Usage:
 """
 
 import os
+from dotenv import load_dotenv
 
 import vibetrading.strategy
 
+load_dotenv()
 
 def generate_with_openai(user_prompt: str) -> str:
     """Generate strategy code using OpenAI's API."""

@@ -20,11 +20,13 @@ Usage:
 import os
 import sys
 from datetime import datetime, timezone
+from dotenv import load_dotenv
 
 import vibetrading.strategy
 import vibetrading.backtest
 import vibetrading.tools
 
+load_dotenv()
 
 ASSETS = ["BTC"]
 EXCHANGE = "binance"
@@ -42,6 +44,9 @@ def detect_model() -> str | None:
         return "anthropic/claude-sonnet-4-20250514"
     if os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY"):
         return "gemini/gemini-2.5-pro"
+    if os.environ.get("DEEPSEEK_API_KEY"):
+        return "deepseek/deepseek-chat"
+
     return None
 
 
@@ -75,6 +80,7 @@ def main():
             "  OPENAI_API_KEY\n"
             "  ANTHROPIC_API_KEY\n"
             "  GOOGLE_API_KEY / GEMINI_API_KEY\n"
+            "  DEEPSEEK_API_KEY"
         )
         sys.exit(1)
 
