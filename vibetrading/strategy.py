@@ -1,5 +1,5 @@
 """
-Strategy generation, validation, and prompt templates.
+Strategy generation, validation, analysis, and prompt templates.
 
 Usage::
 
@@ -17,6 +17,12 @@ Usage::
     if not result.is_valid:
         print(result.format_for_llm())
 
+    # Analyze backtest results with LLM
+    results = vibetrading.backtest.run(code)
+    report = vibetrading.strategy.analyze(results, strategy_code=code)
+    print(report.summary)
+    print(report.suggestions)
+
     # Use prompt templates with your own LLM client
     messages = vibetrading.strategy.build_generation_prompt("ETH mean reversion")
 """
@@ -25,6 +31,9 @@ from ._agent.generator import StrategyGenerator
 from ._agent.generator import generate_strategy as generate
 from ._agent.validator import validate_strategy as validate
 from ._agent.validator import StrategyValidationResult
+from ._agent.analyzer import BacktestAnalyzer
+from ._agent.analyzer import analyze_backtest as analyze
+from ._agent.analyzer import BacktestAnalysisResult
 from ._agent.prompt import (
     STRATEGY_SYSTEM_PROMPT,
     VIBETRADING_API_REFERENCE,
@@ -37,6 +46,9 @@ __all__ = [
     "generate",
     "validate",
     "StrategyValidationResult",
+    "BacktestAnalyzer",
+    "analyze",
+    "BacktestAnalysisResult",
     "STRATEGY_SYSTEM_PROMPT",
     "VIBETRADING_API_REFERENCE",
     "STRATEGY_CONSTRAINTS",
