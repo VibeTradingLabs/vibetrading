@@ -1,9 +1,8 @@
 """
 Example 6: Analyze backtest results with an LLM.
 
-Demonstrates two workflows:
-    1. Single-shot analysis: backtest -> analyze (get structured feedback)
-    2. Full evolution: evolve() iteratively improves the strategy
+Demonstrates a single-shot workflow:
+    backtest -> vibetrading.strategy.analyze() (LLM feedback)
 
 Uses litellm under the hood, so any OpenAI-compatible provider works.
 
@@ -20,7 +19,6 @@ import sys
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
-import vibetrading
 import vibetrading.strategy
 import vibetrading.backtest
 import vibetrading.tools
@@ -117,10 +115,38 @@ def print_section(title: str):
     print(f"{'─' * 60}\n")
 
 
-def demo_analyze(model: str, data: dict):
-    """Part 1: Single-shot backtest analysis."""
-    print_section("Part 1: Analyze Backtest Results")
+def main():
+    print("=" * 60)
+    print("  Example 6: Backtest Analysis with LLM")
+    print("=" * 60)
 
+    model = detect_model()
+    if not model:
+        print(
+            "\nNo API key found. Set one of these environment variables:\n"
+            "  OPENAI_API_KEY\n"
+            "  ANTHROPIC_API_KEY\n"
+            "  GOOGLE_API_KEY / GEMINI_API_KEY\n"
+            "  DEEPSEEK_API_KEY"
+        )
+        sys.exit(1)
+
+    print(f"\n  Detected model: {model}")
+
+    # Download data once
+    print_section("Downloading historical data")
+    data = vibetrading.tools.download_data(
+        ASSETS,
+        exchange=EXCHANGE,
+        start_time=START,
+        end_time=END,
+        interval=INTERVAL,
+        market_type="perp",
+    )
+    for key, df in data.items():
+        print(f"  {key}: {len(df)} rows")
+
+    print_section("Part 1: Analyze Backtest Results")
     print("  Running backtest on sample strategy...")
     results = vibetrading.backtest.run(
         SAMPLE_STRATEGY,
@@ -133,6 +159,9 @@ def demo_analyze(model: str, data: dict):
 
     if not results:
         print("  Backtest returned no results.")
+        print("\n" + "=" * 60)
+        print("  Done.")
+        print("=" * 60)
         return
 
     metrics = results["metrics"]
@@ -176,94 +205,6 @@ def demo_analyze(model: str, data: dict):
         print(f"  {line}")
     print("  ...")
 
-
-def demo_evolve(model: str, data: dict):
-    """Part 2: Full iterative evolution."""
-    print_section("Part 2: Evolve Strategy (iterative improvement)")
-
-    prompt = (
-        "BTC momentum strategy: use RSI(14) for overbought/oversold signals "
-        "and SMA(20)/SMA(50) crossover for trend confirmation. "
-        "3x leverage, 10% risk per trade, TP at 8%, SL at 4%."
-    )
-    print(f"  Prompt: {prompt}")
-    print(f"  Model:  {model}")
-    print(f"  Iterations: 3\n")
-
-    def on_step(step):
-        status = f"score={step.score}/10" if step.analysis else f"error={step.error}"
-        print(f"  [Iteration {step.iteration}] {status}")
-
-    result = vibetrading.evolve(
-        prompt,
-        iterations=3,
-        model=model,
-        interval=INTERVAL,
-        initial_balances=INITIAL_BALANCES,
-        start_time=START,
-        end_time=END,
-        data=data,
-        assets=ASSETS,
-        market_type="perp",
-        score_threshold=8,
-        on_iteration=on_step,
-    )
-
-    print(f"\n  Evolution complete:")
-    print(f"    Best iteration: {result.best_iteration}")
-    print(f"    Best score:     {result.best_score}/10")
-    print(f"    Improved:       {result.improved}")
-    print(f"    Scores:         {[s.score for s in result.history]}")
-
-    if result.best_metrics:
-        m = result.best_metrics
-        print(f"\n  Best metrics:")
-        print(f"    Return:  {m.get('total_return', 0):.2%}")
-        print(f"    Sharpe:  {m.get('sharpe_ratio', 0):.2f}")
-        print(f"    Max DD:  {m.get('max_drawdown', 0):.2%}")
-        print(f"    Trades:  {m.get('number_of_trades', 0)}")
-
-    if result.best_code:
-        print(f"\n  Best strategy code (first 15 lines):")
-        for line in result.best_code.split("\n")[:15]:
-            print(f"    {line}")
-        print("    ...")
-
-
-def main():
-    print("=" * 60)
-    print("  Example 6: Backtest Analysis & Strategy Evolution")
-    print("=" * 60)
-
-    model = detect_model()
-    if not model:
-        print(
-            "\nNo API key found. Set one of these environment variables:\n"
-            "  OPENAI_API_KEY\n"
-            "  ANTHROPIC_API_KEY\n"
-            "  GOOGLE_API_KEY / GEMINI_API_KEY\n"
-            "  DEEPSEEK_API_KEY"
-        )
-        sys.exit(1)
-
-    print(f"\n  Detected model: {model}")
-
-    # Download data once for both demos
-    print_section("Downloading historical data")
-    data = vibetrading.tools.download_data(
-        ASSETS,
-        exchange=EXCHANGE,
-        start_time=START,
-        end_time=END,
-        interval=INTERVAL,
-        market_type="perp",
-    )
-    for key, df in data.items():
-        print(f"  {key}: {len(df)} rows")
-
-    demo_analyze(model, data)
-    demo_evolve(model, data)
-
     print("\n" + "=" * 60)
     print("  Done.")
     print("=" * 60)
@@ -271,3 +212,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
