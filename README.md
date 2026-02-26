@@ -1,7 +1,7 @@
 # VibeTrading
 
 [![PyPI version](https://img.shields.io/pypi/v/vibetrading.svg)](https://pypi.org/project/vibetrading/)
-[![Python](https://img.shields.io/pypi/pyversions/vibetrading.svg)](https://pypi.org/project/vibetrading/)
+[![Python >= 3.10](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://pypi.org/project/vibetrading/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Agent-first trading framework for cryptocurrency. Describe strategies in natural language, generate executable Python code, backtest on historical data, and iteratively improve with LLM-powered analysis.
