@@ -12,14 +12,31 @@ Agent-first trading framework for cryptocurrency. Describe strategies in natural
 pip install vibetrading
 ```
 
-Extras:
-
-```bash
-pip install "vibetrading[agent]"   # + litellm for LLM-powered generation & analysis
-pip install "vibetrading[ta]"      # + ta for technical analysis indicators
-```
+All core dependencies are included: `pandas`, `numpy`, `ccxt`, `litellm`, `ta`, `pydantic`, `python-dotenv`.
 
 ## Quick Start
+
+### Setup
+
+Set your LLM API key (at least one):
+
+```bash
+export OPENAI_API_KEY=sk-...
+# or
+export ANTHROPIC_API_KEY=sk-ant-...
+# or
+export GEMINI_API_KEY=...
+# or
+export DEEPSEEK_API_KEY=...
+```
+
+If you need an HTTP proxy:
+
+```bash
+export HTTPS_PROXY=http://127.0.0.1:7890
+```
+
+Or put them in a `.env` file — the package loads it automatically via `python-dotenv`.
 
 ### Generate a Strategy
 
@@ -251,9 +268,11 @@ Only one LLM key is required. The package auto-detects which provider to use bas
 - Python >= 3.10
 - pandas >= 2.0
 - numpy >= 1.24
+- pydantic >= 2.0
+- python-dotenv >= 1.0
 - ccxt >= 4.0
-- litellm >= 1.80.0 
-- ta >= 0.11 *(optional — for technical analysis indicators)*
+- litellm >= 1.80.0
+- ta >= 0.11
 
 ## License
 
