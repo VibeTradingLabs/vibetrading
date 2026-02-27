@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vibetrading"
-version = "0.1.0"
+version = "0.1.6"
 description = "Agent-first trading framework: describe strategies in natural language, generate executable code, backtest and deploy across exchanges."
 requires-python = ">=3.10"
 license = {text = "MIT"}

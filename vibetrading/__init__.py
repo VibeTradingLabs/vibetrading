@@ -34,7 +34,7 @@ The ``vibe`` decorator is available at the package root for strategy code::
         ...
 """
 
-__version__ = "0.1.3"
+__version__ = "0.1.6"
 
 from ._core.decorator import vibe
 from .evolution import evolve
