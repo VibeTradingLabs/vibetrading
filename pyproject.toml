@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Agent-first trading framework: describe strategies in natural language, generate executable code, backtest and deploy across exchanges."
 requires-python = ">=3.10"
 license = {text = "MIT"}
+readme = "README.md"
 
 dependencies = [
     "pandas>=2.0",
