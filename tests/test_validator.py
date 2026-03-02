@@ -1,8 +1,6 @@
 """Tests for the strategy validator."""
 
-import pytest
-
-from vibetrading._agent.validator import validate_strategy, StrategyValidationResult
+from vibetrading._agent.validator import StrategyValidationResult, validate_strategy
 
 
 class TestValidationResult:

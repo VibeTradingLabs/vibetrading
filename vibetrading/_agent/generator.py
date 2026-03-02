@@ -18,8 +18,8 @@ Usage::
 import logging
 from typing import Any
 
-from .prompt import STRATEGY_SYSTEM_PROMPT, build_generation_prompt
-from .validator import validate_strategy, StrategyValidationResult
+from .prompt import build_generation_prompt
+from .validator import StrategyValidationResult, validate_strategy
 
 logger = logging.getLogger(__name__)
 
@@ -91,11 +91,10 @@ class StrategyGenerator:
         """
         try:
             import litellm
-        except ImportError:
+        except ImportError as err:
             raise ImportError(
-                "litellm is required for strategy generation. "
-                "Install it with: pip install 'vibetrading[agent]'"
-            )
+                "litellm is required for strategy generation. Install it with: pip install 'vibetrading[agent]'"
+            ) from err
 
         messages = build_generation_prompt(
             prompt,
@@ -116,7 +115,8 @@ class StrategyGenerator:
                 messages.append({"role": "user", "content": feedback})
                 logger.info(
                     "Retry %d/%d: feeding validation errors back to LLM",
-                    attempt, max_retries,
+                    attempt,
+                    max_retries,
                 )
 
             completion_kwargs: dict[str, Any] = {
@@ -144,15 +144,15 @@ class StrategyGenerator:
 
             logger.warning(
                 "Validation failed (attempt %d/%d): %s",
-                attempt + 1, max_retries + 1,
+                attempt + 1,
+                max_retries + 1,
                 "; ".join(last_validation.errors),
             )
 
         if last_validation and not last_validation.is_valid:
             error_summary = "; ".join(last_validation.errors)
             raise ValueError(
-                f"Strategy generation failed validation after {max_retries + 1} attempts. "
-                f"Errors: {error_summary}"
+                f"Strategy generation failed validation after {max_retries + 1} attempts. Errors: {error_summary}"
             )
 
         return code or ""
@@ -164,6 +164,7 @@ class StrategyGenerator:
 
         # Remove XML tags (e.g., <update_agent_kernel_code>)
         import re
+
         code = re.sub(r"</?update_agent_kernel_code>", "", code)
 
         # Remove markdown code fences

@@ -6,24 +6,22 @@ Requires: pip install vibetrading[lighter]
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 
 import pandas as pd
 
-from .base import LiveSandboxBase
 from .._models.orders import (
-    PerpAccountSummary, SpotAccountSummary,
-    CancelOrdersResponse, PerpOrderResponse, PerpOrder,
-    SpotOrderResponse, SpotOrder,
+    CancelOrdersResponse,
+    PerpAccountSummary,
+    SpotAccountSummary,
 )
 from .._utils.notification import NotificationDeduplicator
-from .._utils.cache import CachedAPICall
+from .base import LiveSandboxBase
 
 logger = logging.getLogger(__name__)
 
 try:
-    from lighter.signer_client import SignerClient
-    import lighter
+    import lighter  # noqa: F401
+
     _HAS_LIGHTER = True
 except ImportError:
     _HAS_LIGHTER = False
@@ -34,19 +32,16 @@ class LighterSandbox(LiveSandboxBase):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_secret: Optional[str] = None,
+        api_key: str | None = None,
+        api_secret: str | None = None,
         mode: str = "live",
-        address: Optional[str] = None,
+        address: str | None = None,
         api_key_index: int = 0,
-        notification_deduplicator: Optional[NotificationDeduplicator] = None,
+        notification_deduplicator: NotificationDeduplicator | None = None,
         **kwargs,
     ):
         if not _HAS_LIGHTER:
-            raise ImportError(
-                "lighter SDK not installed. Install with: "
-                "pip install vibetrading[lighter]"
-            )
+            raise ImportError("lighter SDK not installed. Install with: pip install vibetrading[lighter]")
 
         super().__init__(
             exchange_name="lighter",

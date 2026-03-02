@@ -1,9 +1,9 @@
 """Tests for prompt building and templates."""
 
 from vibetrading._agent.prompt import (
+    STRATEGY_CONSTRAINTS,
     STRATEGY_SYSTEM_PROMPT,
     VIBETRADING_API_REFERENCE,
-    STRATEGY_CONSTRAINTS,
     build_generation_prompt,
 )
 

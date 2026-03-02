@@ -1,24 +1,26 @@
 """Tests for order and account models."""
 
 from vibetrading._models.orders import (
+    CancelOrdersResponse,
     PerpAccountSummary,
+    PerpOrder,
+    PerpOrderResponse,
     PerpPositionSummary,
     SpotAccountSummary,
     SpotBalanceSummary,
-    SpotOrder,
     SpotOrderResponse,
-    PerpOrder,
-    PerpOrderResponse,
-    CancelOrdersResponse,
 )
-from vibetrading._models.types import SpotMeta, PerpMeta, AgentMetadata, StrategyType, RiskLevel
+from vibetrading._models.types import AgentMetadata, PerpMeta, RiskLevel, SpotMeta, StrategyType
 
 
 class TestPerpModels:
     def test_position_summary_to_dict(self):
         pos = PerpPositionSummary(
-            asset="BTC", size=0.1, entry_price=68000.0,
-            unrealized_pnl=125.50, position_value=6800.0,
+            asset="BTC",
+            size=0.1,
+            entry_price=68000.0,
+            unrealized_pnl=125.50,
+            position_value=6800.0,
             margin_used=1360.0,
         )
         d = pos.to_dict()
@@ -28,13 +30,18 @@ class TestPerpModels:
 
     def test_account_summary_with_positions(self):
         pos = PerpPositionSummary(
-            asset="ETH", size=-1.0, entry_price=3500.0,
-            unrealized_pnl=-50.0, position_value=3500.0,
+            asset="ETH",
+            size=-1.0,
+            entry_price=3500.0,
+            unrealized_pnl=-50.0,
+            position_value=3500.0,
             margin_used=700.0,
         )
         summary = PerpAccountSummary(
-            account_value=10000.0, available_margin=9300.0,
-            total_margin_used=700.0, total_unrealized_pnl=-50.0,
+            account_value=10000.0,
+            available_margin=9300.0,
+            total_margin_used=700.0,
+            total_unrealized_pnl=-50.0,
             positions=[pos],
         )
         d = summary.to_dict()
@@ -44,8 +51,13 @@ class TestPerpModels:
 
     def test_perp_order_response_success(self):
         order = PerpOrder(
-            id="1", asset="BTC", side="long", type="limit",
-            size=0.1, price=68000.0, timestamp=1700000000,
+            id="1",
+            asset="BTC",
+            side="long",
+            type="limit",
+            size=0.1,
+            price=68000.0,
+            timestamp=1700000000,
         )
         resp = PerpOrderResponse(status="success", order=order)
         d = resp.to_dict()

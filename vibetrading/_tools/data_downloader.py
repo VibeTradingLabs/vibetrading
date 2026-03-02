@@ -17,11 +17,10 @@ Usage::
     )
 """
 
+import logging
 import os
 import time
-import logging
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional
 
 import pandas as pd
 
@@ -37,20 +36,20 @@ logger = logging.getLogger(__name__)
 
 
 def download_data(
-    assets: List[str],
+    assets: list[str],
     *,
     exchange: str = "binance",
-    start_time: Optional[datetime] = None,
-    end_time: Optional[datetime] = None,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
     interval: str = "1h",
     market_type: str = "perp",
     data_dir: str = DATASET_DIR,
     force_refresh: bool = False,
     include_funding: bool = True,
     include_oi: bool = True,
-    proxy: Optional[str] = None,
+    proxy: str | None = None,
     timeout: int = 30000,
-) -> Dict[str, pd.DataFrame]:
+) -> dict[str, pd.DataFrame]:
     """
     Download historical market data and save to CSV cache.
 
@@ -106,7 +105,7 @@ def download_data(
     symbol_map = DEFAULT_PERP_SYMBOLS if market_type == "perp" else DEFAULT_SPOT_SYMBOLS
     is_futures = market_type == "perp"
 
-    results: Dict[str, pd.DataFrame] = {}
+    results: dict[str, pd.DataFrame] = {}
 
     for asset in assets:
         asset = asset.upper()
@@ -115,7 +114,12 @@ def download_data(
             symbol = f"{asset}/USDT:USDT" if is_futures else f"{asset}/USDT"
 
         cache_file = generate_cache_filename(
-            exchange, symbol, start_date, end_date, interval, data_dir,
+            exchange,
+            symbol,
+            start_date,
+            end_date,
+            interval,
+            data_dir,
         )
         key = f"{asset}/{interval}"
 
@@ -145,15 +149,15 @@ def download_data(
                 continue
 
             ohlcv_df["timestamp"] = pd.to_datetime(
-                ohlcv_df["timestamp"], unit="ms", utc=True,
+                ohlcv_df["timestamp"],
+                unit="ms",
+                utc=True,
             )
             ohlcv_df.set_index("timestamp", inplace=True)
 
             start_filter = pd.to_datetime(start_date, utc=True) - timedelta(days=3)
             end_filter = pd.to_datetime(end_date, utc=True) + timedelta(days=1)
-            data = ohlcv_df[
-                (ohlcv_df.index >= start_filter) & (ohlcv_df.index < end_filter)
-            ].copy()
+            data = ohlcv_df[(ohlcv_df.index >= start_filter) & (ohlcv_df.index < end_filter)].copy()
 
             if data.empty:
                 print(f"  WARNING: No data in date range for {asset}")
@@ -163,13 +167,23 @@ def download_data(
             # Merge funding rate for futures
             if is_futures and include_funding:
                 data = _merge_funding_rate(
-                    tool, symbol, data, start_filter, end_filter, fetch_start,
+                    tool,
+                    symbol,
+                    data,
+                    start_filter,
+                    end_filter,
+                    fetch_start,
                 )
 
             # Merge open interest for futures
             if is_futures and include_oi:
                 data = _merge_open_interest(
-                    tool, symbol, data, start_filter, end_filter, fetch_start,
+                    tool,
+                    symbol,
+                    data,
+                    start_filter,
+                    end_filter,
+                    fetch_start,
                     interval,
                 )
 
@@ -212,12 +226,12 @@ def _merge_funding_rate(
         fr_df = tool.fetch_funding_rate_history(symbol=symbol, days_back=days_back)
         if not fr_df.empty:
             fr_df["timestamp"] = pd.to_datetime(
-                fr_df["timestamp"], unit="ms", utc=True,
+                fr_df["timestamp"],
+                unit="ms",
+                utc=True,
             )
             fr_df.set_index("timestamp", inplace=True)
-            fr_df = fr_df[
-                (fr_df.index >= start_filter) & (fr_df.index < end_filter)
-            ]
+            fr_df = fr_df[(fr_df.index >= start_filter) & (fr_df.index < end_filter)]
             if not fr_df.empty:
                 ohlcv_m = data.reset_index()
                 fr_m = fr_df.reset_index()
@@ -229,9 +243,7 @@ def _merge_funding_rate(
                 )
                 merged.set_index("timestamp", inplace=True)
                 data = merged
-            data["fundingRate"] = data.get(
-                "fundingRate", pd.Series(dtype=float)
-            ).fillna(0.0)
+            data["fundingRate"] = data.get("fundingRate", pd.Series(dtype=float)).fillna(0.0)
         else:
             data["fundingRate"] = 0.0
     except Exception:
@@ -254,16 +266,18 @@ def _merge_open_interest(
     try:
         days_back = (datetime.now(tz=timezone.utc) - fetch_start).days + 4
         oi_df = tool.fetch_open_interest_history(
-            symbol=symbol, days_back=days_back, timeframe=interval,
+            symbol=symbol,
+            days_back=days_back,
+            timeframe=interval,
         )
         if not oi_df.empty:
             oi_df["timestamp"] = pd.to_datetime(
-                oi_df["timestamp"], unit="ms", utc=True,
+                oi_df["timestamp"],
+                unit="ms",
+                utc=True,
             )
             oi_df.set_index("timestamp", inplace=True)
-            oi_filt = oi_df[
-                (oi_df.index >= start_filter) & (oi_df.index < end_filter)
-            ]
+            oi_filt = oi_df[(oi_df.index >= start_filter) & (oi_df.index < end_filter)]
             if not oi_filt.empty:
                 ohlcv_m = data.reset_index()
                 oi_m = oi_filt.reset_index()
@@ -329,9 +343,7 @@ class _CcxtClient:
                 logger.info("Using proxy: %s", proxy)
 
             exchange_cfg = EXCHANGES.get(self.exchange_id, {})
-            config.update(
-                {k: v for k, v in exchange_cfg.items() if k not in self._AUTH_KEYS}
-            )
+            config.update({k: v for k, v in exchange_cfg.items() if k not in self._AUTH_KEYS})
 
             exchange_class = getattr(ccxt, self.exchange_id, None)
             if exchange_class is None:
@@ -359,8 +371,14 @@ class _CcxtClient:
     @staticmethod
     def _interval_ms(timeframe: str) -> int:
         mapping = {
-            "1m": 1, "5m": 5, "15m": 15, "30m": 30,
-            "1h": 60, "4h": 240, "1d": 1440, "3d": 4320,
+            "1m": 1,
+            "5m": 5,
+            "15m": 15,
+            "30m": 30,
+            "1h": 60,
+            "4h": 240,
+            "1d": 1440,
+            "3d": 4320,
         }
         if timeframe not in mapping:
             raise ValueError(f"Unsupported timeframe: {timeframe}")
@@ -386,7 +404,10 @@ class _CcxtClient:
         while since < end_ms:
             try:
                 ohlcv = exchange.fetch_ohlcv(
-                    symbol, timeframe, since=since, limit=limit,
+                    symbol,
+                    timeframe,
+                    since=since,
+                    limit=limit,
                 )
                 if not ohlcv:
                     break
@@ -407,29 +428,26 @@ class _CcxtClient:
             columns=["timestamp", "open", "high", "low", "close", "volume"],
         )
         df = df[(df["timestamp"] >= start_ms) & (df["timestamp"] <= end_ms)]
-        df = (
-            df.drop_duplicates(subset=["timestamp"])
-            .sort_values("timestamp")
-            .reset_index(drop=True)
-        )
+        df = df.drop_duplicates(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
         return df
 
     def fetch_funding_rate_history(
-        self, symbol: str, days_back: int = 30,
+        self,
+        symbol: str,
+        days_back: int = 30,
     ) -> pd.DataFrame:
         """Fetch historical funding rate data."""
         exchange = self._get_exchange()
-        since_ms = int(
-            (datetime.now(tz=timezone.utc) - timedelta(days=days_back)).timestamp()
-            * 1000
-        )
+        since_ms = int((datetime.now(tz=timezone.utc) - timedelta(days=days_back)).timestamp() * 1000)
         try:
             if hasattr(exchange, "fetch_funding_rate_history"):
                 all_rates = []
                 since = since_ms
                 while True:
                     rates = exchange.fetch_funding_rate_history(
-                        symbol, since=since, limit=1000,
+                        symbol,
+                        since=since,
+                        limit=1000,
                     )
                     if not rates:
                         break
@@ -454,8 +472,15 @@ class _CcxtClient:
         return pd.DataFrame()
 
     _OI_MAX_DAYS: dict[str, int] = {
-        "5m": 2, "15m": 30, "30m": 30, "1h": 30,
-        "2h": 90, "4h": 90, "6h": 90, "12h": 90, "1d": 180,
+        "5m": 2,
+        "15m": 30,
+        "30m": 30,
+        "1h": 30,
+        "2h": 90,
+        "4h": 90,
+        "6h": 90,
+        "12h": 90,
+        "1d": 180,
     }
 
     def fetch_open_interest_history(
@@ -475,15 +500,12 @@ class _CcxtClient:
             if effective_days < days_back:
                 logger.info(
                     "OI history for %s capped to %d days (exchange limit for %s)",
-                    symbol, max_days, timeframe,
+                    symbol,
+                    max_days,
+                    timeframe,
                 )
 
-            since_ms = int(
-                (
-                    datetime.now(tz=timezone.utc) - timedelta(days=effective_days)
-                ).timestamp()
-                * 1000
-            )
+            since_ms = int((datetime.now(tz=timezone.utc) - timedelta(days=effective_days)).timestamp() * 1000)
             end_ms = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
 
             all_records: list[dict] = []
@@ -492,7 +514,10 @@ class _CcxtClient:
 
             while cursor < end_ms:
                 oi_data = exchange.fetch_open_interest_history(
-                    symbol, timeframe=timeframe, since=cursor, limit=limit,
+                    symbol,
+                    timeframe=timeframe,
+                    since=cursor,
+                    limit=limit,
                 )
                 if not oi_data:
                     break

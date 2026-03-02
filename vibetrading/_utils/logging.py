@@ -12,8 +12,7 @@ import json
 import time
 from collections import deque
 from datetime import datetime
-from typing import Dict, Any, Optional
-
+from typing import Any
 
 ENABLE_HUMAN_READABLE_LOGS = False
 
@@ -28,16 +27,12 @@ class FIFORateLimiter:
         self.window_seconds = window_seconds
         self.max_events = int(max_qps * window_seconds)
         self.events = deque()
-        self._stats = {
-            'total_events': 0,
-            'rate_limited_events': 0,
-            'last_reset': time.time()
-        }
+        self._stats = {"total_events": 0, "rate_limited_events": 0, "last_reset": time.time()}
 
-    def should_allow(self, event_type: Optional[str] = None) -> bool:
+    def should_allow(self, event_type: str | None = None) -> bool:
         """Check if a new event should be allowed based on current rate."""
         current_time = time.time()
-        self._stats['total_events'] += 1
+        self._stats["total_events"] += 1
 
         cutoff_time = current_time - self.window_seconds
         while self.events and self.events[0] <= cutoff_time:
@@ -47,7 +42,7 @@ class FIFORateLimiter:
             self.events.append(current_time)
             return True
         else:
-            self._stats['rate_limited_events'] += 1
+            self._stats["rate_limited_events"] += 1
             return False
 
     def get_current_qps(self) -> float:
@@ -58,26 +53,22 @@ class FIFORateLimiter:
             self.events.popleft()
         return len(self.events) / self.window_seconds
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get rate limiter statistics."""
         current_time = time.time()
-        uptime = current_time - self._stats['last_reset']
+        uptime = current_time - self._stats["last_reset"]
         return {
-            'current_qps': self.get_current_qps(),
-            'max_qps': self.max_qps,
-            'events_in_window': len(self.events),
-            'total_events': self._stats['total_events'],
-            'rate_limited_events': self._stats['rate_limited_events'],
-            'uptime_seconds': uptime
+            "current_qps": self.get_current_qps(),
+            "max_qps": self.max_qps,
+            "events_in_window": len(self.events),
+            "total_events": self._stats["total_events"],
+            "rate_limited_events": self._stats["rate_limited_events"],
+            "uptime_seconds": uptime,
         }
 
     def reset_stats(self):
         """Reset statistics counters."""
-        self._stats = {
-            'total_events': 0,
-            'rate_limited_events': 0,
-            'last_reset': time.time()
-        }
+        self._stats = {"total_events": 0, "rate_limited_events": 0, "last_reset": time.time()}
 
 
 _global_rate_limiter = FIFORateLimiter(max_qps=2.0, window_seconds=1.0)
@@ -89,27 +80,24 @@ def configure_rate_limiting(max_qps: float = 2.0, window_seconds: float = 1.0):
     _global_rate_limiter = FIFORateLimiter(max_qps=max_qps, window_seconds=window_seconds)
 
 
-def is_rate_limited(event_type: Optional[str] = None) -> bool:
+def is_rate_limited(event_type: str | None = None) -> bool:
     """Check if logging should be rate limited."""
     return not _global_rate_limiter.should_allow(event_type)
 
 
-def get_rate_limiter_stats() -> Dict[str, Any]:
+def get_rate_limiter_stats() -> dict[str, Any]:
     """Get current rate limiter statistics."""
     return _global_rate_limiter.get_stats()
 
 
-def log_portfolio_update(total_value, balances, futures_positions=None, timestamp=None,
-                         balances_usd=None, futures_positions_usd=None):
+def log_portfolio_update(
+    total_value, balances, futures_positions=None, timestamp=None, balances_usd=None, futures_positions_usd=None
+):
     """Log a portfolio update in structured format."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
 
-    data = {
-        "timestamp": timestamp,
-        "total_value": total_value,
-        "balances": balances
-    }
+    data = {"timestamp": timestamp, "total_value": total_value, "balances": balances}
 
     if balances_usd:
         data["balances_usd"] = balances_usd
@@ -131,10 +119,17 @@ def log_portfolio_update(total_value, balances, futures_positions=None, timestam
     print(f"PORTFOLIO_UPDATE:{json.dumps(data)}")
 
 
-def log_trade_execution(action: str, asset: str, quantity: float, price: float,
-                        value: Optional[float] = None, timestamp: Optional[str] = None,
-                        pnl: Optional[float] = None, position_avg_cost: Optional[float] = None,
-                        fee: Optional[float] = None):
+def log_trade_execution(
+    action: str,
+    asset: str,
+    quantity: float,
+    price: float,
+    value: float | None = None,
+    timestamp: str | None = None,
+    pnl: float | None = None,
+    position_avg_cost: float | None = None,
+    fee: float | None = None,
+):
     """Log a trade execution in structured format."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
@@ -147,7 +142,7 @@ def log_trade_execution(action: str, asset: str, quantity: float, price: float,
         "asset": asset,
         "quantity": quantity,
         "price": price,
-        "value": value
+        "value": value,
     }
     if pnl is not None:
         data["pnl"] = pnl
@@ -159,10 +154,14 @@ def log_trade_execution(action: str, asset: str, quantity: float, price: float,
     print(f"TRADE_EXECUTED:{json.dumps(data)}")
 
 
-def log_pnl_update(realized_pnl: float, unrealized_pnl: float, total_pnl: float,
-                   funding_revenue_period: Optional[float] = None,
-                   total_funding_revenue: Optional[float] = None,
-                   timestamp: Optional[str] = None):
+def log_pnl_update(
+    realized_pnl: float,
+    unrealized_pnl: float,
+    total_pnl: float,
+    funding_revenue_period: float | None = None,
+    total_funding_revenue: float | None = None,
+    timestamp: str | None = None,
+):
     """Log P&L update in structured format."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
@@ -171,7 +170,7 @@ def log_pnl_update(realized_pnl: float, unrealized_pnl: float, total_pnl: float,
         "timestamp": timestamp,
         "realized_pnl": realized_pnl,
         "unrealized_pnl": unrealized_pnl,
-        "total_pnl": total_pnl
+        "total_pnl": total_pnl,
     }
     if funding_revenue_period is not None:
         data["funding_revenue_period"] = funding_revenue_period
@@ -184,27 +183,26 @@ def log_pnl_update(realized_pnl: float, unrealized_pnl: float, total_pnl: float,
         print(f"P&L Update: Realized ${realized_pnl:.2f}, Unrealized ${unrealized_pnl:.2f}, Total ${total_pnl:.2f}")
 
 
-def log_strategy_event(event_type: str, message: str, data: Optional[Dict[str, Any]] = None,
-                       timestamp: Optional[str] = None):
+def log_strategy_event(event_type: str, message: str, data: dict[str, Any] | None = None, timestamp: str | None = None):
     """Log a custom strategy event in structured format."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
 
-    event_data = {
-        "timestamp": timestamp,
-        "event_type": event_type,
-        "message": message,
-        "data": data or {}
-    }
+    event_data = {"timestamp": timestamp, "event_type": event_type, "message": message, "data": data or {}}
     print(f"STRATEGY_EVENT:{json.dumps(event_data)}")
 
 
-def log_metrics_update(win_rate: float, max_drawdown: float, total_trades: int,
-                       sharpe_ratio: float, total_return: float,
-                       funding_revenue: float = 0.0,
-                       total_tx_fees: float = 0.0,
-                       initial_balance: float = 10000,
-                       timestamp: Optional[str] = None):
+def log_metrics_update(
+    win_rate: float,
+    max_drawdown: float,
+    total_trades: int,
+    sharpe_ratio: float,
+    total_return: float,
+    funding_revenue: float = 0.0,
+    total_tx_fees: float = 0.0,
+    initial_balance: float = 10000,
+    timestamp: str | None = None,
+):
     """Log metrics update in structured format."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
@@ -218,18 +216,18 @@ def log_metrics_update(win_rate: float, max_drawdown: float, total_trades: int,
         "total_return": total_return,
         "funding_revenue": funding_revenue,
         "total_tx_fees": total_tx_fees,
-        "initial_balance": initial_balance
+        "initial_balance": initial_balance,
     }
     print(f"METRICS_UPDATE:{json.dumps(data)}")
 
     if ENABLE_HUMAN_READABLE_LOGS:
         print(
-            f"Live Metrics: Return {total_return*100:.1f}%, Win Rate {win_rate*100:.1f}%, "
-            f"Drawdown {max_drawdown*100:.1f}%, Trades {total_trades}, Sharpe {sharpe_ratio:.2f}"
+            f"Live Metrics: Return {total_return * 100:.1f}%, Win Rate {win_rate * 100:.1f}%, "
+            f"Drawdown {max_drawdown * 100:.1f}%, Trades {total_trades}, Sharpe {sharpe_ratio:.2f}"
         )
 
 
-def log_portfolio_composition(composition: Dict[str, float], timestamp: Optional[str] = None):
+def log_portfolio_composition(composition: dict[str, float], timestamp: str | None = None):
     """Log portfolio composition in structured format."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
@@ -237,9 +235,14 @@ def log_portfolio_composition(composition: Dict[str, float], timestamp: Optional
     print(f"PORTFOLIO_COMPOSITION:{json.dumps(data)}")
 
 
-def log_runtime_error(error_type: str, error_message: str, error_traceback: Optional[str] = None,
-                      strategy_function: Optional[str] = None, timestamp: Optional[str] = None,
-                      strategy_code_context: Optional[Dict[str, Any]] = None):
+def log_runtime_error(
+    error_type: str,
+    error_message: str,
+    error_traceback: str | None = None,
+    strategy_function: str | None = None,
+    timestamp: str | None = None,
+    strategy_code_context: dict[str, Any] | None = None,
+):
     """Log a runtime error in structured format (not rate limited)."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
@@ -250,7 +253,7 @@ def log_runtime_error(error_type: str, error_message: str, error_traceback: Opti
         "error_message": error_message,
         "error_traceback": error_traceback,
         "strategy_function": strategy_function,
-        "regeneration_needed": True
+        "regeneration_needed": True,
     }
     if strategy_code_context:
         data["strategy_code_context"] = strategy_code_context
@@ -258,16 +261,19 @@ def log_runtime_error(error_type: str, error_message: str, error_traceback: Opti
     print(f"RUNTIME_ERROR:{json.dumps(data)}")
 
 
-def log_download_progress(message: str, data_type: str = "general",
-                         progress_percent: Optional[float] = None,
-                         items_processed: Optional[int] = None,
-                         total_items: Optional[int] = None,
-                         timestamp: Optional[str] = None):
+def log_download_progress(
+    message: str,
+    data_type: str = "general",
+    progress_percent: float | None = None,
+    items_processed: int | None = None,
+    total_items: int | None = None,
+    timestamp: str | None = None,
+):
     """Log download progress in structured format."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
 
-    data: Dict[str, Any] = {"timestamp": timestamp, "message": message, "data_type": data_type}
+    data: dict[str, Any] = {"timestamp": timestamp, "message": message, "data_type": data_type}
     if progress_percent is not None:
         data["progress_percent"] = progress_percent
     if items_processed is not None:
@@ -278,18 +284,19 @@ def log_download_progress(message: str, data_type: str = "general",
     print(f"DOWNLOAD_PROGRESS:{json.dumps(data)}", flush=True)
 
 
-def log_download_success(message: str, items_count: Optional[int] = None,
-                        data_type: str = "general", timestamp: Optional[str] = None):
+def log_download_success(
+    message: str, items_count: int | None = None, data_type: str = "general", timestamp: str | None = None
+):
     """Log download success in structured format."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
-    data: Dict[str, Any] = {"timestamp": timestamp, "message": message, "data_type": data_type}
+    data: dict[str, Any] = {"timestamp": timestamp, "message": message, "data_type": data_type}
     if items_count is not None:
         data["items_count"] = items_count
     print(f"DOWNLOAD_SUCCESS:{json.dumps(data)}", flush=True)
 
 
-def log_download_error(message: str, error_type: str = "general", timestamp: Optional[str] = None):
+def log_download_error(message: str, error_type: str = "general", timestamp: str | None = None):
     """Log download error in structured format."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
@@ -297,7 +304,7 @@ def log_download_error(message: str, error_type: str = "general", timestamp: Opt
     print(f"DOWNLOAD_ERROR:{json.dumps(data)}", flush=True)
 
 
-def log_download_warning(message: str, warning_type: str = "general", timestamp: Optional[str] = None):
+def log_download_warning(message: str, warning_type: str = "general", timestamp: str | None = None):
     """Log download warning in structured format."""
     if timestamp is None:
         timestamp = datetime.now().isoformat()

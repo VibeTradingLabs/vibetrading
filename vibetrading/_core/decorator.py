@@ -25,7 +25,7 @@ replaced by a mock that registers callbacks. This standalone version
 serves as a no-op marker for module-level usage.
 """
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 
 def vibe(interval_or_func=None, **kwargs):
@@ -45,10 +45,11 @@ def vibe(interval_or_func=None, **kwargs):
         return func
     else:
         # Called as @vibe() or @vibe(interval="1h")
-        interval = interval_or_func if interval_or_func is not None else kwargs.get('interval', "1m")
+        interval = interval_or_func if interval_or_func is not None else kwargs.get("interval", "1m")
 
         def actual_decorator(func: Callable):
             func._vibe_interval = interval
             func._is_vibe_strategy = True
             return func
+
         return actual_decorator

@@ -31,6 +31,7 @@ class StrategyValidationResult:
         errors: List of error messages that must be fixed.
         warnings: List of warning messages (non-blocking but recommended to fix).
     """
+
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -146,9 +147,8 @@ def _check_imports(code: str, tree: ast.Module, result: StrategyValidationResult
             for alias in node.names:
                 if alias.name == "vibetrading":
                     has_import = True
-        elif isinstance(node, ast.ImportFrom):
-            if node.module and node.module.startswith("vibetrading"):
-                has_import = True
+        elif isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("vibetrading"):
+            has_import = True
 
     if not has_import:
         result.errors.append(
@@ -170,8 +170,7 @@ def _check_vibe_decorator(code: str, tree: ast.Module, result: StrategyValidatio
 
     if len(vibe_functions) == 0:
         result.errors.append(
-            "No function decorated with `@vibe`. "
-            "Exactly one strategy function must have the @vibe decorator."
+            "No function decorated with `@vibe`. Exactly one strategy function must have the @vibe decorator."
         )
     elif len(vibe_functions) > 1:
         result.errors.append(
@@ -248,9 +247,7 @@ def _check_risk_management(code: str, result: StrategyValidationResult):
         return
 
     has_reduce = bool(re.search(r"\breduce_position\s*\(", code))
-    has_tp_sl_keywords = bool(
-        re.search(r"(tp|take.?profit|sl|stop.?loss|TP_PCT|SL_PCT)", code, re.IGNORECASE)
-    )
+    has_tp_sl_keywords = bool(re.search(r"(tp|take.?profit|sl|stop.?loss|TP_PCT|SL_PCT)", code, re.IGNORECASE))
 
     if not has_reduce:
         result.warnings.append(
@@ -268,9 +265,7 @@ def _check_nan_handling(code: str, result: StrategyValidationResult):
     """Check for NaN handling when using price functions."""
     uses_price = bool(re.search(r"\bget_(perp|spot)_price\s*\(", code))
     has_nan_check = bool(
-        re.search(r"math\.isnan\s*\(", code)
-        or re.search(r"pd\.isna\s*\(", code)
-        or re.search(r"np\.isnan\s*\(", code)
+        re.search(r"math\.isnan\s*\(", code) or re.search(r"pd\.isna\s*\(", code) or re.search(r"np\.isnan\s*\(", code)
     )
 
     if uses_price and not has_nan_check:

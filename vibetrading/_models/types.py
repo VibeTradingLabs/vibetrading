@@ -2,13 +2,14 @@
 Type definitions for exchange metadata and agent configuration.
 """
 
-from typing import Optional, List, Dict, Any
 from enum import Enum
+
 from pydantic import BaseModel
 
 
 class SpotMeta(BaseModel):
     """Spot market metadata."""
+
     asset: str
     symbol: str
     sz_decimals: int
@@ -17,6 +18,7 @@ class SpotMeta(BaseModel):
 
 class PerpMeta(BaseModel):
     """Perpetual market metadata."""
+
     asset: str
     symbol: str
     sz_decimals: int
@@ -26,6 +28,7 @@ class PerpMeta(BaseModel):
 
 class AgentStatus(str, Enum):
     """Agent lifecycle states."""
+
     CREATED = "created"
     RUNNING = "running"
     PAUSED = "paused"
@@ -36,6 +39,7 @@ class AgentStatus(str, Enum):
 
 class StrategyType(str, Enum):
     """Strategy classification types."""
+
     DCA = "dca"
     ARBITRAGE = "arbitrage"
     GRID = "grid"
@@ -48,6 +52,7 @@ class StrategyType(str, Enum):
 
 class RiskLevel(str, Enum):
     """Risk level classification."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -56,14 +61,15 @@ class RiskLevel(str, Enum):
 
 class AgentMetadata(BaseModel):
     """Metadata for a live trading agent."""
+
     name: str = ""
     strategy_type: StrategyType = StrategyType.CUSTOM
     market_type: str = "perp"
     risk_level: RiskLevel = RiskLevel.MEDIUM
     exchange: str = "hyperliquid"
     version: str = "1"
-    tags: List[str] = []
-    trading_assets: List[str] = []
+    tags: list[str] = []
+    trading_assets: list[str] = []
     timeframe: str = "1m"
     model: str = ""
     auto_pilot: bool = False
@@ -71,6 +77,7 @@ class AgentMetadata(BaseModel):
 
 class AgentMetrics(BaseModel):
     """Metrics for a trading agent."""
+
     spot_equity: float = 0.0
     perp_equity: float = 0.0
     total_equity: float = 0.0

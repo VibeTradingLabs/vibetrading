@@ -8,10 +8,10 @@ live trading and backtesting.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional
-import pandas as pd
 from datetime import datetime, timedelta
-import numpy as np
+from typing import Any
+
+import pandas as pd
 
 SUPPORTED_INTERVALS = {
     "1s": timedelta(seconds=1),
@@ -32,7 +32,7 @@ class VibeSandboxBase(ABC):
 
     # ── Asset Support ──────────────────────────────────────────────────
     @abstractmethod
-    def get_supported_assets(self) -> List[str]:
+    def get_supported_assets(self) -> list[str]:
         """Get list of supported assets for trading."""
         pass
 
@@ -48,7 +48,7 @@ class VibeSandboxBase(ABC):
 
     # ── Order Management ───────────────────────────────────────────────
     @abstractmethod
-    def get_perp_open_orders(self, symbol: str = None) -> List[Dict[str, Any]]:
+    def get_perp_open_orders(self, symbol: str = None) -> list[dict[str, Any]]:
         """Get open perpetual orders.
 
         Returns:
@@ -58,7 +58,7 @@ class VibeSandboxBase(ABC):
         pass
 
     @abstractmethod
-    def get_spot_open_orders(self, symbol: str = None) -> List[Dict[str, Any]]:
+    def get_spot_open_orders(self, symbol: str = None) -> list[dict[str, Any]]:
         """Get open spot orders.
 
         Returns:
@@ -73,12 +73,12 @@ class VibeSandboxBase(ABC):
         pass
 
     @abstractmethod
-    def cancel_spot_orders(self, asset: str, order_ids: List[str]) -> Dict[str, Any]:
+    def cancel_spot_orders(self, asset: str, order_ids: list[str]) -> dict[str, Any]:
         """Cancel multiple spot orders by their IDs (max 10 per request)."""
         pass
 
     @abstractmethod
-    def cancel_perp_orders(self, asset: str, order_ids: List[str]) -> Dict[str, Any]:
+    def cancel_perp_orders(self, asset: str, order_ids: list[str]) -> dict[str, Any]:
         """Cancel multiple perp orders by their IDs (max 10 per request)."""
         pass
 
@@ -89,7 +89,7 @@ class VibeSandboxBase(ABC):
         pass
 
     @abstractmethod
-    def buy(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> Dict[str, Any]:
+    def buy(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> dict[str, Any]:
         """Execute a spot buy order.
 
         Returns:
@@ -98,12 +98,12 @@ class VibeSandboxBase(ABC):
         pass
 
     @abstractmethod
-    def sell(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> Dict[str, Any]:
+    def sell(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> dict[str, Any]:
         """Execute a spot sell order."""
         pass
 
     @abstractmethod
-    def long(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> Dict[str, Any]:
+    def long(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> dict[str, Any]:
         """Execute a futures long position.
 
         Returns:
@@ -112,12 +112,12 @@ class VibeSandboxBase(ABC):
         pass
 
     @abstractmethod
-    def short(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> Dict[str, Any]:
+    def short(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> dict[str, Any]:
         """Execute a futures short position."""
         pass
 
     @abstractmethod
-    def reduce_position(self, asset: str, quantity: float) -> Dict[str, Any]:
+    def reduce_position(self, asset: str, quantity: float) -> dict[str, Any]:
         """Reduce a futures position for an asset."""
         pass
 
@@ -174,17 +174,17 @@ class VibeSandboxBase(ABC):
 
     # ── Account Summaries ──────────────────────────────────────────────
     @abstractmethod
-    def get_perp_summary(self) -> Dict[str, Any]:
+    def get_perp_summary(self) -> dict[str, Any]:
         """Get account-level perpetual summary with positions."""
         pass
 
     @abstractmethod
-    def get_perp_position(self, asset: str) -> Optional[Dict[str, Any]]:
+    def get_perp_position(self, asset: str) -> dict[str, Any] | None:
         """Get the current perp position for an asset."""
         pass
 
     @abstractmethod
-    def get_spot_summary(self) -> Dict[str, Any]:
+    def get_spot_summary(self) -> dict[str, Any]:
         """Get spot account summary with balances."""
         pass
 
@@ -195,7 +195,7 @@ class VibeSandboxBase(ABC):
         pass
 
     # ── Non-abstract helpers ───────────────────────────────────────────
-    def advance_time(self, interval: str) -> Optional[datetime]:
+    def advance_time(self, interval: str) -> datetime | None:
         """Advance the simulation time by the specified interval."""
         return None
 

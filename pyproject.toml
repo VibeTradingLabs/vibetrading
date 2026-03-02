@@ -76,6 +76,7 @@ select = [
 ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # do not perform function calls in argument defaults
+    "SIM105", # contextlib.suppress — prefer explicit try/except in hot paths
     "SIM108", # use ternary operator
     "UP007",  # use X | Y for union types (keep Optional for 3.10 compat)
 ]

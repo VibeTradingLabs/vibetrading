@@ -1,9 +1,10 @@
 """Tests for the BacktestEngine end-to-end."""
 
+from datetime import datetime, timezone
+
 import numpy as np
 import pandas as pd
 import pytest
-from datetime import datetime, timezone
 
 from vibetrading._core.backtest import BacktestEngine
 

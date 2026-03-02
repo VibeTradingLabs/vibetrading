@@ -5,16 +5,16 @@ Requires: pip install vibetrading[aster]
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 
 import pandas as pd
 
-from .base import LiveSandboxBase
 from .._models.orders import (
-    PerpAccountSummary, SpotAccountSummary,
     CancelOrdersResponse,
+    PerpAccountSummary,
+    SpotAccountSummary,
 )
 from .._utils.notification import NotificationDeduplicator
+from .base import LiveSandboxBase
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,13 @@ class AsterSandbox(LiveSandboxBase):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_secret: Optional[str] = None,
+        api_key: str | None = None,
+        api_secret: str | None = None,
         mode: str = "live",
-        user_address: Optional[str] = None,
-        private_key: Optional[str] = None,
+        user_address: str | None = None,
+        private_key: str | None = None,
         testnet: bool = False,
-        notification_deduplicator: Optional[NotificationDeduplicator] = None,
+        notification_deduplicator: NotificationDeduplicator | None = None,
         **kwargs,
     ):
         exchange_name = "aster_testnet" if testnet else "aster"

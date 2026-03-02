@@ -12,17 +12,17 @@ Usage::
 """
 
 from ._models.orders import (
+    CancelOrdersResponse,
     PerpAccountSummary,
+    PerpOrder,
+    PerpOrderResponse,
     PerpPositionSummary,
     SpotAccountSummary,
     SpotBalanceSummary,
     SpotOrder,
     SpotOrderResponse,
-    PerpOrder,
-    PerpOrderResponse,
-    CancelOrdersResponse,
 )
-from ._models.types import SpotMeta, PerpMeta, AgentMetadata
+from ._models.types import AgentMetadata, PerpMeta, SpotMeta
 
 __all__ = [
     "PerpAccountSummary",

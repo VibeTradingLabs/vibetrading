@@ -23,11 +23,12 @@ can be passed directly to ``ccxt.<exchange>(EXCHANGES["binance"])``::
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
-_env_local_path = Path('.env.local')
+_env_local_path = Path(".env.local")
 if _env_local_path.exists():
     load_dotenv(dotenv_path=_env_local_path, override=True)
 
@@ -38,7 +39,7 @@ def str_to_bool(value) -> bool:
         return value
     if value is None:
         return False
-    return str(value).lower() in ('true', '1', 'yes', 'on')
+    return str(value).lower() in ("true", "1", "yes", "on")
 
 
 # ── Package directory paths ───────────────────────────────────────────
@@ -46,7 +47,7 @@ PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATASET_DIR = os.path.join(os.getcwd(), "vibetrading", "dataset")
 
 # ── Global settings ───────────────────────────────────────────────────
-DEFAULT_EXCHANGE = os.environ.get('VIBETRADING_DEFAULT_EXCHANGE', 'binance')
+DEFAULT_EXCHANGE = os.environ.get("VIBETRADING_DEFAULT_EXCHANGE", "binance")
 
 # ── Exchange registry (CCXT-compatible) ───────────────────────────────
 #
@@ -59,20 +60,21 @@ DEFAULT_EXCHANGE = os.environ.get('VIBETRADING_DEFAULT_EXCHANGE', 'binance')
 # }
 EXCHANGES: dict[str, dict] = {
     "binance": {
-        "apiKey": os.environ.get('BINANCE_API_KEY', ''),
-        "secret": os.environ.get('BINANCE_API_SECRET', ''),
+        "apiKey": os.environ.get("BINANCE_API_KEY", ""),
+        "secret": os.environ.get("BINANCE_API_SECRET", ""),
         "options": {
             "defaultType": "swap",  # 永续合约类型
-        }
+        },
     },
     "hyperliquid": {
-        "walletAddress": os.environ.get('HYPERLIQUID_WALLET_ADDRESS', ''),
-        "privateKey": os.environ.get('HYPERLIQUID_PRIVATE_KEY', ''),
-    }
+        "walletAddress": os.environ.get("HYPERLIQUID_WALLET_ADDRESS", ""),
+        "privateKey": os.environ.get("HYPERLIQUID_PRIVATE_KEY", ""),
+    },
 }
 
 
 # ── Directory initialization ──────────────────────────────────────────
+
 
 def ensure_directories():
     """Create necessary directories if they don't exist."""

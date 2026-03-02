@@ -2,14 +2,15 @@
 Cached API call wrapper with rate-limit detection, caching, and retry logic.
 """
 
-import time
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
 
 class RateLimitError(Exception):
     """Raised when API rate limit is hit."""
+
     pass
 
 
@@ -35,12 +36,12 @@ class CachedAPICall:
     def is_rate_limit_error(self, error: Exception) -> bool:
         """Check if error is a rate limit error (429)."""
         error_str = str(error)
-        return '429' in error_str or 'Too Many Requests' in error_str or 'rate limit' in error_str.lower()
+        return "429" in error_str or "Too Many Requests" in error_str or "rate limit" in error_str.lower()
 
     def is_transient_error(self, error: Exception) -> bool:
         """Check if error is transient (network issues, timeouts)."""
         error_str = str(error).lower()
-        transient_indicators = ['timeout', 'connection', 'network', '502', '503', '504']
+        transient_indicators = ["timeout", "connection", "network", "502", "503", "504"]
         return any(indicator in error_str for indicator in transient_indicators)
 
     def __call__(self, api_func, *args, use_cache_on_error: bool = True, cache_key: str = None, **kwargs):
@@ -86,7 +87,7 @@ class CachedAPICall:
                         raise RateLimitError(f"Rate limit hit and no cache available for {cache_key}") from e
 
                 if self.is_transient_error(e) and attempt < self.max_retries:
-                    backoff_time = self.initial_backoff * (2 ** attempt)
+                    backoff_time = self.initial_backoff * (2**attempt)
                     logger.warning(f"Transient error for {cache_key}, retry {attempt + 1}/{self.max_retries}: {e}")
                     time.sleep(backoff_time)
                     continue

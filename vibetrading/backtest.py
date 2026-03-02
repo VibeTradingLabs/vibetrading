@@ -21,7 +21,7 @@ Usage::
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ._core.backtest import BacktestEngine
 from ._core.static_sandbox import StaticSandbox
@@ -32,13 +32,13 @@ def run(
     strategy_code: str,
     *,
     interval: str = "1h",
-    initial_balances: Optional[Dict[str, float]] = None,
-    start_time: Optional[datetime] = None,
-    end_time: Optional[datetime] = None,
+    initial_balances: dict[str, float] | None = None,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
     exchange: str = "binance",
-    data: Optional[Dict] = None,
+    data: dict | None = None,
     mute_strategy_prints: bool = False,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Run a backtest in one call.
 

@@ -6,8 +6,7 @@ auto-refreshing after a configurable window (default 5 minutes).
 """
 
 import re
-from datetime import datetime, timezone, timedelta
-from typing import Dict
+from datetime import datetime, timedelta, timezone
 
 
 class NotificationDeduplicator:
@@ -20,7 +19,7 @@ class NotificationDeduplicator:
 
     def __init__(self, dedup_window_minutes: int = 5):
         self.dedup_window = timedelta(minutes=dedup_window_minutes)
-        self.sent_errors: Dict[str, datetime] = {}
+        self.sent_errors: dict[str, datetime] = {}
 
     def should_send(self, exchange: str, operation: str, error: Exception) -> bool:
         """
@@ -55,14 +54,13 @@ class NotificationDeduplicator:
         if not error_msg:
             return ""
         normalized = error_msg[:200]
-        normalized = re.sub(r'\b\d+\.\d+\b', '', normalized)
-        normalized = re.sub(r'\b\d{4,}\b', '', normalized)
+        normalized = re.sub(r"\b\d+\.\d+\b", "", normalized)
+        normalized = re.sub(r"\b\d{4,}\b", "", normalized)
         normalized = re.sub(
-            r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}',
-            '', normalized, flags=re.IGNORECASE
+            r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", "", normalized, flags=re.IGNORECASE
         )
-        normalized = re.sub(r'0x[a-f0-9]+', '', normalized, flags=re.IGNORECASE)
-        normalized = re.sub(r'\s+', ' ', normalized).strip()
+        normalized = re.sub(r"0x[a-f0-9]+", "", normalized, flags=re.IGNORECASE)
+        normalized = re.sub(r"\s+", " ", normalized).strip()
         return normalized
 
     def _cleanup_old_entries(self, now: datetime):
@@ -72,12 +70,9 @@ class NotificationDeduplicator:
         for k in keys_to_remove:
             del self.sent_errors[k]
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get deduplication statistics."""
         now = datetime.now(timezone.utc)
         cutoff_time = now - self.dedup_window
         recent_count = sum(1 for v in self.sent_errors.values() if v >= cutoff_time)
-        return {
-            "recent_unique_errors": recent_count,
-            "total_cached_errors": len(self.sent_errors)
-        }
+        return {"recent_unique_errors": recent_count, "total_cached_errors": len(self.sent_errors)}

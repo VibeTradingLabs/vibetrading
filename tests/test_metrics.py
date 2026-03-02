@@ -1,7 +1,5 @@
 """Tests for the metrics calculator."""
 
-import pytest
-
 from vibetrading._metrics.calculator import MetricsCalculator
 
 

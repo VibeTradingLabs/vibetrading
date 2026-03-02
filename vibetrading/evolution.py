@@ -29,14 +29,13 @@ Usage::
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ._agent.analyzer import (
     BacktestAnalysisResult,
     BacktestAnalyzer,
 )
 from ._agent.generator import StrategyGenerator
-from ._agent.validator import validate_strategy
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +52,13 @@ class EvolutionStep:
         analysis: LLM analysis of backtest results (None if not analyzed).
         error: Error message if this iteration failed.
     """
+
     iteration: int
     code: str
     validation_passed: bool = False
-    backtest_results: Optional[Dict[str, Any]] = None
-    analysis: Optional[BacktestAnalysisResult] = None
-    error: Optional[str] = None
+    backtest_results: dict[str, Any] | None = None
+    analysis: BacktestAnalysisResult | None = None
+    error: str | None = None
 
     @property
     def score(self) -> int:
@@ -80,19 +80,17 @@ class EvolutionResult:
         prompt: Original natural language prompt.
         total_iterations: Total iterations executed.
     """
+
     best_code: str = ""
-    best_analysis: Optional[BacktestAnalysisResult] = None
-    best_backtest: Optional[Dict[str, Any]] = None
+    best_analysis: BacktestAnalysisResult | None = None
+    best_backtest: dict[str, Any] | None = None
     best_iteration: int = -1
-    history: List[EvolutionStep] = field(default_factory=list)
+    history: list[EvolutionStep] = field(default_factory=list)
     prompt: str = ""
     total_iterations: int = 0
 
     def __repr__(self) -> str:
-        parts = [
-            f"EvolutionResult(iterations={self.total_iterations}, "
-            f"best_iteration={self.best_iteration})"
-        ]
+        parts = [f"EvolutionResult(iterations={self.total_iterations}, best_iteration={self.best_iteration})"]
         if self.best_analysis:
             parts.append(f"  Best Score: {self.best_analysis.score}/10")
             parts.append(f"  Summary: {self.best_analysis.summary}")
@@ -153,10 +151,14 @@ class StrategyEvolver:
         ana_kw = analyzer_kwargs or {}
 
         self.generator = StrategyGenerator(
-            model=model, api_key=api_key, **gen_kw,
+            model=model,
+            api_key=api_key,
+            **gen_kw,
         )
         self.analyzer = BacktestAnalyzer(
-            model=model, api_key=api_key, **ana_kw,
+            model=model,
+            api_key=api_key,
+            **ana_kw,
         )
 
     def evolve(
@@ -165,11 +167,11 @@ class StrategyEvolver:
         *,
         iterations: int = 3,
         interval: str = "1h",
-        initial_balances: Optional[Dict[str, float]] = None,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        initial_balances: dict[str, float] | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         exchange: str = "binance",
-        data: Optional[Dict] = None,
+        data: dict | None = None,
         assets: list[str] | None = None,
         market_type: str | None = None,
         max_leverage: int | None = None,
@@ -286,7 +288,8 @@ class StrategyEvolver:
 
             logger.info(
                 "Iteration %d: score=%d/10, return=%.2f%%",
-                i, analysis.score,
+                i,
+                analysis.score,
                 bt_results.get("metrics", {}).get("total_return", 0) * 100,
             )
 
@@ -304,7 +307,8 @@ class StrategyEvolver:
             if analysis.score >= score_threshold:
                 logger.info(
                     "Score %d reached threshold %d, stopping early",
-                    analysis.score, score_threshold,
+                    analysis.score,
+                    score_threshold,
                 )
                 break
 
@@ -322,11 +326,11 @@ def evolve(
     model: str = "gpt-4o",
     api_key: str | None = None,
     interval: str = "1h",
-    initial_balances: Optional[Dict[str, float]] = None,
-    start_time: Optional[datetime] = None,
-    end_time: Optional[datetime] = None,
+    initial_balances: dict[str, float] | None = None,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
     exchange: str = "binance",
-    data: Optional[Dict] = None,
+    data: dict | None = None,
     assets: list[str] | None = None,
     market_type: str | None = None,
     max_leverage: int | None = None,

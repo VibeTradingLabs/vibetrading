@@ -485,9 +485,7 @@ def build_generation_prompt(
     if max_leverage:
         constraints_parts.append(f"Maximum leverage: {max_leverage}x")
     if interval:
-        constraints_parts.append(
-            f"Strategy timeframe: {interval} (use frame-skipping from 1m interval)"
-        )
+        constraints_parts.append(f"Strategy timeframe: {interval} (use frame-skipping from 1m interval)")
 
     user_content = user_request
     if constraints_parts:

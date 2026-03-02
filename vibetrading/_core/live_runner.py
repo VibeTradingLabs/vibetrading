@@ -6,23 +6,22 @@ including the mock vibetrading module injection, callback registration, and
 a periodic execution loop.
 """
 
+import asyncio
+import contextlib
 import importlib
 import importlib.util
-import sys
 import io
-import contextlib
-import traceback
-import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Callable, Dict, List, Optional, Any
+import sys
+import traceback
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
 
-from .sandbox_base import VibeSandboxBase, SUPPORTED_INTERVALS
-from .error_handler import StrategyErrorHandler
 from .._utils.logging import log_runtime_error
+from .error_handler import StrategyErrorHandler
+from .sandbox_base import VibeSandboxBase
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +49,8 @@ class LiveRunner:
         self.sandbox = sandbox
         self.interval = interval
         self.interval_seconds = self._parse_interval(interval)
-        self.registered_strategy_callbacks: List[Callable] = []
-        self.strategy_code: Optional[str] = None
+        self.registered_strategy_callbacks: list[Callable] = []
+        self.strategy_code: str | None = None
         self.should_stop = False
 
         # Module injection tracking
@@ -84,10 +83,10 @@ class LiveRunner:
         self.strategy_code = strategy_code
         self.registered_strategy_callbacks.clear()
 
-        self._orig_in_sys = 'vibetrading' in sys.modules
-        self._orig_mod = sys.modules.get('vibetrading')
+        self._orig_in_sys = "vibetrading" in sys.modules
+        self._orig_mod = sys.modules.get("vibetrading")
 
-        spec = importlib.util.spec_from_loader('vibetrading', loader=None)
+        spec = importlib.util.spec_from_loader("vibetrading", loader=None)
         if spec is None:
             raise ImportError("Cannot create vibetrading module spec")
         self._mock_mod = importlib.util.module_from_spec(spec)
@@ -105,51 +104,56 @@ class LiveRunner:
                 ival = interval_or_func or kwargs.get("interval", "1m")
                 runner.interval = ival
                 runner.interval_seconds = LiveRunner._parse_interval(ival)
-                if hasattr(runner.sandbox, 'set_run_interval'):
+                if hasattr(runner.sandbox, "set_run_interval"):
                     runner.sandbox.set_run_interval(ival)
+
                 def dec(func):
                     runner.registered_strategy_callbacks.append(error_handler.wrap_strategy(func))
                     return func
+
                 return dec
 
         funcs = {
-            'my_spot_balance': self.sandbox.my_spot_balance,
-            'my_futures_balance': self.sandbox.my_futures_balance,
-            'buy': self.sandbox.buy, 'sell': self.sandbox.sell,
-            'long': self.sandbox.long, 'short': self.sandbox.short,
-            'reduce_position': self.sandbox.reduce_position,
-            'set_leverage': self.sandbox.set_leverage,
-            'get_futures_position': self.sandbox.get_futures_position,
-            'get_price': self.sandbox.get_price,
-            'get_spot_ohlcv': self.sandbox.get_spot_ohlcv,
-            'get_futures_ohlcv': self.sandbox.get_futures_ohlcv,
-            'get_funding_rate': self.sandbox.get_funding_rate,
-            'get_funding_rate_history': self.sandbox.get_funding_rate_history,
-            'get_open_interest': self.sandbox.get_open_interest,
-            'get_open_interest_history': self.sandbox.get_open_interest_history,
-            'get_spot_price': self.sandbox.get_spot_price,
-            'get_perp_price': self.sandbox.get_perp_price,
-            'get_spot_summary': self.sandbox.get_spot_summary,
-            'get_perp_summary': self.sandbox.get_perp_summary,
-            'cancel_spot_orders': self.sandbox.cancel_spot_orders,
-            'cancel_perp_orders': self.sandbox.cancel_perp_orders,
-            'get_perp_position': self.sandbox.get_perp_position,
-            'get_current_time': self.sandbox.get_current_time,
-            'get_supported_assets': self.sandbox.get_supported_assets,
-            'get_perp_open_orders': self.sandbox.get_perp_open_orders,
-            'get_spot_open_orders': self.sandbox.get_spot_open_orders,
-            'cancel_order': self.sandbox.cancel_order,
-            'vibe': mock_vibe,
+            "my_spot_balance": self.sandbox.my_spot_balance,
+            "my_futures_balance": self.sandbox.my_futures_balance,
+            "buy": self.sandbox.buy,
+            "sell": self.sandbox.sell,
+            "long": self.sandbox.long,
+            "short": self.sandbox.short,
+            "reduce_position": self.sandbox.reduce_position,
+            "set_leverage": self.sandbox.set_leverage,
+            "get_futures_position": self.sandbox.get_futures_position,
+            "get_price": self.sandbox.get_price,
+            "get_spot_ohlcv": self.sandbox.get_spot_ohlcv,
+            "get_futures_ohlcv": self.sandbox.get_futures_ohlcv,
+            "get_funding_rate": self.sandbox.get_funding_rate,
+            "get_funding_rate_history": self.sandbox.get_funding_rate_history,
+            "get_open_interest": self.sandbox.get_open_interest,
+            "get_open_interest_history": self.sandbox.get_open_interest_history,
+            "get_spot_price": self.sandbox.get_spot_price,
+            "get_perp_price": self.sandbox.get_perp_price,
+            "get_spot_summary": self.sandbox.get_spot_summary,
+            "get_perp_summary": self.sandbox.get_perp_summary,
+            "cancel_spot_orders": self.sandbox.cancel_spot_orders,
+            "cancel_perp_orders": self.sandbox.cancel_perp_orders,
+            "get_perp_position": self.sandbox.get_perp_position,
+            "get_current_time": self.sandbox.get_current_time,
+            "get_supported_assets": self.sandbox.get_supported_assets,
+            "get_perp_open_orders": self.sandbox.get_perp_open_orders,
+            "get_spot_open_orders": self.sandbox.get_spot_open_orders,
+            "cancel_order": self.sandbox.cancel_order,
+            "vibe": mock_vibe,
         }
 
         for name, obj in funcs.items():
             setattr(self._mock_mod, name, obj)
-        sys.modules['vibetrading'] = self._mock_mod
+        sys.modules["vibetrading"] = self._mock_mod
 
-        exec_globals = {'pd': pd, 'np': np, 'ta': None}
+        exec_globals = {"pd": pd, "np": np, "ta": None}
         try:
             import ta
-            exec_globals['ta'] = ta
+
+            exec_globals["ta"] = ta
         except ImportError:
             pass
         exec_globals.update(funcs)
@@ -159,16 +163,17 @@ class LiveRunner:
         if not self.registered_strategy_callbacks:
             raise ValueError("No strategy functions registered. Use @vibe decorator.")
 
-        logger.info("Strategy loaded: %d callback(s), interval=%s",
-                     len(self.registered_strategy_callbacks), self.interval)
+        logger.info(
+            "Strategy loaded: %d callback(s), interval=%s", len(self.registered_strategy_callbacks), self.interval
+        )
 
     def cleanup(self):
         """Restore the original vibetrading module."""
-        if self._mock_mod and 'vibetrading' in sys.modules and sys.modules['vibetrading'] is self._mock_mod:
+        if self._mock_mod and "vibetrading" in sys.modules and sys.modules["vibetrading"] is self._mock_mod:
             if self._orig_in_sys and self._orig_mod is not None:
-                sys.modules['vibetrading'] = self._orig_mod
+                sys.modules["vibetrading"] = self._orig_mod
             elif not self._orig_in_sys:
-                del sys.modules['vibetrading']
+                del sys.modules["vibetrading"]
         self._mock_mod = None
 
     def run_callbacks_once(self):
@@ -183,7 +188,7 @@ class LiveRunner:
                     logger.info("Strategy output: %s", output)
             except Exception as e:
                 tb = traceback.format_exc()
-                log_runtime_error(type(e).__name__, str(e), tb, getattr(cb, '__name__', 'callback'))
+                log_runtime_error(type(e).__name__, str(e), tb, getattr(cb, "__name__", "callback"))
                 raise
 
     async def start(self):

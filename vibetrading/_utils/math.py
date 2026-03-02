@@ -3,7 +3,6 @@ Mathematical utility functions for trading operations.
 """
 
 import math
-from typing import Union
 
 
 def truncate_quantity(quantity: float, decimal_places: int) -> float:
@@ -31,7 +30,7 @@ def truncate_quantity(quantity: float, decimal_places: int) -> float:
     if decimal_places < 0:
         raise ValueError("Decimal places must be non-negative")
 
-    multiplier = 10 ** decimal_places
+    multiplier = 10**decimal_places
     return math.floor(quantity * multiplier) / multiplier
 
 
@@ -65,5 +64,5 @@ def format_hyperliquid_price(price: float, is_spot: bool = True) -> float:
         formatted_price = round(price, sig_figs - int(math.floor(math.log10(abs(price)))) - 1)
         formatted_price = round(formatted_price, max_decimals)
 
-    price_str = f"{formatted_price:.{max_decimals}f}".rstrip('0').rstrip('.')
+    price_str = f"{formatted_price:.{max_decimals}f}".rstrip("0").rstrip(".")
     return float(price_str)

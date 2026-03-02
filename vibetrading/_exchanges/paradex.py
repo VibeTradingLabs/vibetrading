@@ -6,16 +6,16 @@ Requires: pip install vibetrading[paradex]
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 
 import pandas as pd
 
-from .base import LiveSandboxBase
 from .._models.orders import (
-    PerpAccountSummary, PerpPositionSummary, SpotAccountSummary,
-    CancelOrdersResponse, PerpOrderResponse, PerpOrder,
+    CancelOrdersResponse,
+    PerpAccountSummary,
+    SpotAccountSummary,
 )
 from .._utils.notification import NotificationDeduplicator
+from .base import LiveSandboxBase
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +27,12 @@ class ParadexSandbox(LiveSandboxBase):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_secret: Optional[str] = None,
+        api_key: str | None = None,
+        api_secret: str | None = None,
         mode: str = "live",
-        account_address: Optional[str] = None,
-        private_key: Optional[str] = None,
-        notification_deduplicator: Optional[NotificationDeduplicator] = None,
+        account_address: str | None = None,
+        private_key: str | None = None,
+        notification_deduplicator: NotificationDeduplicator | None = None,
         **kwargs,
     ):
         super().__init__(

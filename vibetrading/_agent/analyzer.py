@@ -23,7 +23,7 @@ import json
 import logging
 import math
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,7 @@ class BacktestAnalysisResult:
         detailed_analysis: In-depth multi-paragraph analysis.
         raw_metrics: The metrics dict that was analyzed.
     """
+
     score: int = 0
     summary: str = ""
     strengths: list[str] = field(default_factory=list)
@@ -149,7 +150,7 @@ class BacktestAnalysisResult:
         return "\n".join(parts)
 
 
-def _prepare_metrics_summary(backtest_results: Dict[str, Any]) -> str:
+def _prepare_metrics_summary(backtest_results: dict[str, Any]) -> str:
     """Condense backtest results into a token-efficient summary for LLM."""
     lines = ["## Backtest Metrics\n"]
 
@@ -172,7 +173,7 @@ def _prepare_metrics_summary(backtest_results: Dict[str, Any]) -> str:
 
     sim = backtest_results.get("simulation_info", {})
     if sim:
-        lines.append(f"\n## Simulation Info\n")
+        lines.append("\n## Simulation Info\n")
         lines.append(f"- Time Range: {sim.get('time_range', 'N/A')}")
         lines.append(f"- Interval: {sim.get('interval', 'N/A')}")
         lines.append(f"- Steps: {sim.get('steps', 0)}")
@@ -183,7 +184,7 @@ def _prepare_metrics_summary(backtest_results: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _prepare_trade_summary(backtest_results: Dict[str, Any], max_notable: int = 10) -> str:
+def _prepare_trade_summary(backtest_results: dict[str, Any], max_notable: int = 10) -> str:
     """Summarize trades by asset with notable trades sampled."""
     trades = backtest_results.get("trades", [])
     if not trades:
@@ -191,7 +192,7 @@ def _prepare_trade_summary(backtest_results: Dict[str, Any], max_notable: int = 
 
     lines = [f"## Trade Summary\n\nTotal trades: {len(trades)}\n"]
 
-    by_asset: Dict[str, list] = {}
+    by_asset: dict[str, list] = {}
     for t in trades:
         asset = t.get("asset", "unknown")
         by_asset.setdefault(asset, []).append(t)
@@ -214,7 +215,7 @@ def _prepare_trade_summary(backtest_results: Dict[str, Any], max_notable: int = 
             if valid_pnls:
                 lines.append(f"  Winning: {winning}, Losing: {losing}")
                 lines.append(f"  Total PnL: ${sum(valid_pnls):,.2f}")
-                lines.append(f"  Avg PnL: ${sum(valid_pnls)/len(valid_pnls):,.2f}")
+                lines.append(f"  Avg PnL: ${sum(valid_pnls) / len(valid_pnls):,.2f}")
                 lines.append(f"  Best: ${max(valid_pnls):,.2f}, Worst: ${min(valid_pnls):,.2f}")
         lines.append("")
 
@@ -234,7 +235,7 @@ def _prepare_trade_summary(backtest_results: Dict[str, Any], max_notable: int = 
     return "\n".join(lines)
 
 
-def _extract_notable_trades(trades: List[Dict], max_count: int) -> List[Dict]:
+def _extract_notable_trades(trades: list[dict], max_count: int) -> list[dict]:
     """Pick the most informative trades: largest wins, largest losses, first, last."""
     if not trades:
         return []
@@ -273,7 +274,7 @@ def _extract_notable_trades(trades: List[Dict], max_count: int) -> List[Dict]:
     return result[:max_count]
 
 
-def _prepare_equity_curve_summary(backtest_results: Dict[str, Any], max_points: int = 30) -> str:
+def _prepare_equity_curve_summary(backtest_results: dict[str, Any], max_points: int = 30) -> str:
     """Downsample equity curve to key points for LLM context."""
     import pandas as pd
 
@@ -312,16 +313,18 @@ def _prepare_equity_curve_summary(backtest_results: Dict[str, Any], max_points: 
 
 
 def _build_analysis_prompt(
-    backtest_results: Dict[str, Any],
-    strategy_code: Optional[str] = None,
+    backtest_results: dict[str, Any],
+    strategy_code: str | None = None,
     detail_level: str = "standard",
 ) -> list[dict[str, str]]:
     """Build the message list for LLM analysis."""
     parts = [_prepare_metrics_summary(backtest_results)]
-    parts.append(_prepare_trade_summary(
-        backtest_results,
-        max_notable=20 if detail_level == "detailed" else 10,
-    ))
+    parts.append(
+        _prepare_trade_summary(
+            backtest_results,
+            max_notable=20 if detail_level == "detailed" else 10,
+        )
+    )
 
     if detail_level == "detailed":
         curve = _prepare_equity_curve_summary(backtest_results, max_points=50)
@@ -358,7 +361,8 @@ def _parse_analysis_response(raw: str) -> dict:
         pass
 
     import re
-    match = re.search(r'\{[\s\S]*\}', raw)
+
+    match = re.search(r"\{[\s\S]*\}", raw)
     if match:
         try:
             return json.loads(match.group())
@@ -411,9 +415,9 @@ class BacktestAnalyzer:
 
     def analyze(
         self,
-        backtest_results: Dict[str, Any],
+        backtest_results: dict[str, Any],
         *,
-        strategy_code: Optional[str] = None,
+        strategy_code: str | None = None,
         detail_level: str = "standard",
     ) -> BacktestAnalysisResult:
         """
@@ -435,11 +439,10 @@ class BacktestAnalyzer:
         """
         try:
             import litellm
-        except ImportError:
+        except ImportError as err:
             raise ImportError(
-                "litellm is required for backtest analysis. "
-                "Install it with: pip install 'vibetrading[agent]'"
-            )
+                "litellm is required for backtest analysis. Install it with: pip install 'vibetrading[agent]'"
+            ) from err
 
         if not backtest_results:
             raise ValueError("backtest_results is empty or None.")
@@ -477,9 +480,9 @@ class BacktestAnalyzer:
 
 
 def analyze_backtest(
-    backtest_results: Dict[str, Any],
+    backtest_results: dict[str, Any],
     *,
-    strategy_code: Optional[str] = None,
+    strategy_code: str | None = None,
     model: str = "gpt-4o",
     api_key: str | None = None,
     detail_level: str = "standard",

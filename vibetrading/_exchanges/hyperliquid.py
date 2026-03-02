@@ -5,29 +5,28 @@ Requires: pip install vibetrading[hyperliquid]
   (hyperliquid-python-sdk, eth_account)
 """
 
-import os
-import math
 import logging
-import traceback
 import time
-from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional
+from typing import Any
 
 import pandas as pd
-import numpy as np
 
-from .base import LiveSandboxBase
-from .._core.sandbox_base import SUPPORTED_INTERVALS, SUPPORTED_LEVERAGE
+from .._core.sandbox_base import SUPPORTED_INTERVALS
 from .._models.orders import (
-    PerpAccountSummary, PerpPositionSummary,
-    SpotAccountSummary, SpotBalanceSummary,
-    SpotOrder, PerpOrder,
-    SpotOrderResponse, PerpOrderResponse,
     CancelOrdersResponse,
+    PerpAccountSummary,
+    PerpOrder,
+    PerpOrderResponse,
+    PerpPositionSummary,
+    SpotAccountSummary,
+    SpotBalanceSummary,
+    SpotOrder,
+    SpotOrderResponse,
 )
-from .._models.types import SpotMeta, PerpMeta
-from .._utils.math import truncate_quantity, format_hyperliquid_price
+from .._models.types import PerpMeta, SpotMeta
+from .._utils.math import format_hyperliquid_price, truncate_quantity
 from .._utils.notification import NotificationDeduplicator
+from .base import LiveSandboxBase
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +34,7 @@ try:
     import eth_account
     from hyperliquid.exchange import Exchange
     from hyperliquid.info import Info
-    from hyperliquid.utils import constants
+
     _HAS_HL = True
 except ImportError:
     _HAS_HL = False
@@ -46,18 +45,15 @@ class HyperliquidSandbox(LiveSandboxBase):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_secret: Optional[str] = None,
+        api_key: str | None = None,
+        api_secret: str | None = None,
         mode: str = "live",
-        notification_deduplicator: Optional[NotificationDeduplicator] = None,
-        builder_address: Optional[str] = None,
+        notification_deduplicator: NotificationDeduplicator | None = None,
+        builder_address: str | None = None,
         **kwargs,
     ):
         if not _HAS_HL:
-            raise ImportError(
-                "hyperliquid SDK not installed. Install with: "
-                "pip install vibetrading[hyperliquid]"
-            )
+            raise ImportError("hyperliquid SDK not installed. Install with: pip install vibetrading[hyperliquid]")
 
         super().__init__(
             exchange_name="hyperliquid",
@@ -85,8 +81,10 @@ class HyperliquidSandbox(LiveSandboxBase):
                 sz_dec = int(asset.get("szDecimals", 6))
                 max_lev = int(asset.get("maxLeverage", 20))
                 self.perp_meta[name] = PerpMeta(
-                    symbol=f"{name}/USDC:USDC", name=name,
-                    sz_decimals=sz_dec, price_decimals=6 - sz_dec,
+                    symbol=f"{name}/USDC:USDC",
+                    name=name,
+                    sz_decimals=sz_dec,
+                    price_decimals=6 - sz_dec,
                     max_leverage=max_lev,
                 )
             spot_info = self.info.spot_meta()
@@ -101,8 +99,10 @@ class HyperliquidSandbox(LiveSandboxBase):
                         tok_name = tok_name[1:]
                     sz_dec = int(tok["szDecimals"])
                     self.spot_meta[tok_name] = SpotMeta(
-                        symbol=f"{tok_name}/USDC", name=tok_name,
-                        sz_decimals=sz_dec, price_decimals=8 - sz_dec,
+                        symbol=f"{tok_name}/USDC",
+                        name=tok_name,
+                        sz_decimals=sz_dec,
+                        price_decimals=8 - sz_dec,
                     )
                     self.asset_spot_mapping[tok_name] = m["name"]
                     self.spot_asset_mapping[m["name"]] = tok_name
@@ -111,7 +111,7 @@ class HyperliquidSandbox(LiveSandboxBase):
             logger.error("Failed to load Hyperliquid market metadata: %s", e)
 
     # ── VibeSandboxBase implementation (delegating to hyperliquid SDK) ──
-    def get_supported_assets(self) -> List[str]:
+    def get_supported_assets(self) -> list[str]:
         return self.supported_assets
 
     def get_price(self, asset: str) -> float:
@@ -149,27 +149,31 @@ class HyperliquidSandbox(LiveSandboxBase):
             logger.error("Error getting futures balance: %s", e)
         return 0.0
 
-    def buy(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> Dict[str, Any]:
+    def buy(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> dict[str, Any]:
         spot_name = self.asset_spot_mapping.get(asset, asset)
         pm = self.spot_meta.get(asset)
         if pm:
             quantity = truncate_quantity(quantity, pm.sz_decimals)
             price = format_hyperliquid_price(price, is_spot=True)
         is_market = order_type == "market"
-        resp = self.hyperliquid.order(spot_name, True, quantity, price, {"limit": {"tif": "Ioc" if is_market else "Gtc"}})
+        resp = self.hyperliquid.order(
+            spot_name, True, quantity, price, {"limit": {"tif": "Ioc" if is_market else "Gtc"}}
+        )
         return self._parse_order_response(resp, asset, "buy", quantity, price, "spot")
 
-    def sell(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> Dict[str, Any]:
+    def sell(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> dict[str, Any]:
         spot_name = self.asset_spot_mapping.get(asset, asset)
         pm = self.spot_meta.get(asset)
         if pm:
             quantity = truncate_quantity(quantity, pm.sz_decimals)
             price = format_hyperliquid_price(price, is_spot=True)
         is_market = order_type == "market"
-        resp = self.hyperliquid.order(spot_name, False, quantity, price, {"limit": {"tif": "Ioc" if is_market else "Gtc"}})
+        resp = self.hyperliquid.order(
+            spot_name, False, quantity, price, {"limit": {"tif": "Ioc" if is_market else "Gtc"}}
+        )
         return self._parse_order_response(resp, asset, "sell", quantity, price, "spot")
 
-    def long(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> Dict[str, Any]:
+    def long(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> dict[str, Any]:
         pm = self.perp_meta.get(asset)
         if pm:
             quantity = truncate_quantity(quantity, pm.sz_decimals)
@@ -178,7 +182,7 @@ class HyperliquidSandbox(LiveSandboxBase):
         resp = self.hyperliquid.order(asset, True, quantity, price, {"limit": {"tif": "Ioc" if is_market else "Gtc"}})
         return self._parse_order_response(resp, asset, "long", quantity, price, "futures")
 
-    def short(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> Dict[str, Any]:
+    def short(self, asset: str, quantity: float, price: float, order_type: str = "limit") -> dict[str, Any]:
         pm = self.perp_meta.get(asset)
         if pm:
             quantity = truncate_quantity(quantity, pm.sz_decimals)
@@ -187,7 +191,7 @@ class HyperliquidSandbox(LiveSandboxBase):
         resp = self.hyperliquid.order(asset, False, quantity, price, {"limit": {"tif": "Ioc" if is_market else "Gtc"}})
         return self._parse_order_response(resp, asset, "short", quantity, price, "futures")
 
-    def reduce_position(self, asset: str, quantity: float) -> Dict[str, Any]:
+    def reduce_position(self, asset: str, quantity: float) -> dict[str, Any]:
         pos = self.get_futures_position(asset)
         if pos == 0:
             return PerpOrderResponse.Error(f"No position for {asset}").to_dict()
@@ -229,12 +233,16 @@ class HyperliquidSandbox(LiveSandboxBase):
                 return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
             rows = []
             for c in candles:
-                rows.append({
-                    "timestamp": pd.to_datetime(c["t"], unit="ms", utc=True),
-                    "open": float(c["o"]), "high": float(c["h"]),
-                    "low": float(c["l"]), "close": float(c["c"]),
-                    "volume": float(c["v"]),
-                })
+                rows.append(
+                    {
+                        "timestamp": pd.to_datetime(c["t"], unit="ms", utc=True),
+                        "open": float(c["o"]),
+                        "high": float(c["h"]),
+                        "low": float(c["l"]),
+                        "close": float(c["c"]),
+                        "volume": float(c["v"]),
+                    }
+                )
             df = pd.DataFrame(rows).set_index("timestamp").sort_index().tail(limit)
             return df
         except Exception as e:
@@ -257,8 +265,13 @@ class HyperliquidSandbox(LiveSandboxBase):
             start_ms = now_ms - limit * 3600 * 1000
             data = self.info.funding_history(asset, start_ms, end_time=now_ms)
             if data:
-                rows = [{"timestamp": pd.to_datetime(d["time"], unit="ms", utc=True),
-                         "fundingRate": float(d.get("fundingRate", 0))} for d in data]
+                rows = [
+                    {
+                        "timestamp": pd.to_datetime(d["time"], unit="ms", utc=True),
+                        "fundingRate": float(d.get("fundingRate", 0)),
+                    }
+                    for d in data
+                ]
                 return pd.DataFrame(rows)
         except Exception:
             pass
@@ -285,33 +298,35 @@ class HyperliquidSandbox(LiveSandboxBase):
             logger.error("Cancel order error: %s", e)
             return False
 
-    def get_perp_open_orders(self, asset: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_perp_open_orders(self, asset: str | None = None) -> list[dict[str, Any]]:
         try:
             orders = self.info.open_orders(self.api_key)
             result = []
             for o in orders:
                 if asset and o.get("coin") != asset:
                     continue
-                result.append({
-                    "order_id": str(o.get("oid", "")),
-                    "asset": o.get("coin", ""),
-                    "side": o.get("side", ""),
-                    "price": float(o.get("limitPx", 0)),
-                    "amount": float(o.get("sz", 0)),
-                    "symbol": o.get("coin", ""),
-                })
+                result.append(
+                    {
+                        "order_id": str(o.get("oid", "")),
+                        "asset": o.get("coin", ""),
+                        "side": o.get("side", ""),
+                        "price": float(o.get("limitPx", 0)),
+                        "amount": float(o.get("sz", 0)),
+                        "symbol": o.get("coin", ""),
+                    }
+                )
             return result
         except Exception as e:
             logger.error("Open orders error: %s", e)
             return []
 
-    def get_spot_open_orders(self, asset: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_spot_open_orders(self, asset: str | None = None) -> list[dict[str, Any]]:
         return []
 
-    def cancel_spot_orders(self, asset: str, order_ids: List[str]) -> Dict[str, Any]:
+    def cancel_spot_orders(self, asset: str, order_ids: list[str]) -> dict[str, Any]:
         return CancelOrdersResponse(status="success", orders=[]).to_dict()
 
-    def cancel_perp_orders(self, asset: str, order_ids: List[str]) -> Dict[str, Any]:
+    def cancel_perp_orders(self, asset: str, order_ids: list[str]) -> dict[str, Any]:
         results = []
         for oid in order_ids:
             if self.cancel_order(oid):
@@ -320,7 +335,7 @@ class HyperliquidSandbox(LiveSandboxBase):
                 results.append({"status": "error", "id": oid})
         return CancelOrdersResponse(status="success", orders=results).to_dict()
 
-    def get_perp_summary(self) -> Dict[str, Any]:
+    def get_perp_summary(self) -> dict[str, Any]:
         try:
             state = self.info.user_state(self.api_key)
             ms = state.get("marginSummary", {})
@@ -330,14 +345,16 @@ class HyperliquidSandbox(LiveSandboxBase):
                 sz = float(pos.get("szi", 0))
                 if abs(sz) < 1e-8:
                     continue
-                positions.append(PerpPositionSummary(
-                    asset=pos.get("coin", ""),
-                    size=sz,
-                    entry_price=float(pos.get("entryPx", 0)),
-                    unrealized_pnl=float(pos.get("unrealizedPnl", 0)),
-                    position_value=float(pos.get("positionValue", 0)),
-                    margin_used=float(pos.get("marginUsed", 0)),
-                ))
+                positions.append(
+                    PerpPositionSummary(
+                        asset=pos.get("coin", ""),
+                        size=sz,
+                        entry_price=float(pos.get("entryPx", 0)),
+                        unrealized_pnl=float(pos.get("unrealizedPnl", 0)),
+                        position_value=float(pos.get("positionValue", 0)),
+                        margin_used=float(pos.get("marginUsed", 0)),
+                    )
+                )
             summary = PerpAccountSummary(
                 account_value=float(ms.get("accountValue", 0)),
                 available_margin=float(ms.get("totalMarginUsed", 0)),
@@ -350,23 +367,27 @@ class HyperliquidSandbox(LiveSandboxBase):
             logger.error("Perp summary error: %s", e)
             return PerpAccountSummary().to_dict()
 
-    def get_perp_position(self, asset: str) -> Optional[Dict[str, Any]]:
+    def get_perp_position(self, asset: str) -> dict[str, Any] | None:
         for p in self.get_perp_summary().get("positions", []):
             if p.get("asset") == asset:
                 return p
         return None
 
-    def get_spot_summary(self) -> Dict[str, Any]:
+    def get_spot_summary(self) -> dict[str, Any]:
         try:
             state = self.info.spot_user_state(self.api_key)
             bals = []
             for b in state.get("balances", []):
                 coin = b.get("coin", "")
                 mapped = self.spot_asset_mapping.get(coin, coin)
-                bals.append(SpotBalanceSummary(
-                    asset=mapped, total=float(b.get("total", 0)),
-                    free=float(b.get("total", 0)), locked=0,
-                ))
+                bals.append(
+                    SpotBalanceSummary(
+                        asset=mapped,
+                        total=float(b.get("total", 0)),
+                        free=float(b.get("total", 0)),
+                        locked=0,
+                    )
+                )
             return SpotAccountSummary(balances=bals).to_dict()
         except Exception as e:
             logger.error("Spot summary error: %s", e)
@@ -391,10 +412,11 @@ class HyperliquidSandbox(LiveSandboxBase):
         return None
 
     # ── Helpers ─────────────────────────────────────────────────────────
-    def _parse_order_response(self, resp: Any, asset: str, side: str,
-                              qty: float, price: float, trading_type: str) -> Dict[str, Any]:
+    def _parse_order_response(
+        self, resp: Any, asset: str, side: str, qty: float, price: float, trading_type: str
+    ) -> dict[str, Any]:
         try:
-            status = resp.get("status", "error") if isinstance(resp, dict) else "error"
+            _status = resp.get("status", "error") if isinstance(resp, dict) else "error"  # noqa: F841
             resting = None
             if isinstance(resp, dict) and "response" in resp:
                 inner = resp["response"]

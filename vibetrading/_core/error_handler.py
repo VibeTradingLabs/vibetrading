@@ -6,7 +6,7 @@ providing detailed traceback information for debugging and auto-regeneration.
 """
 
 import traceback
-from typing import Callable, Optional, Dict
+from collections.abc import Callable
 from functools import wraps
 
 from .._utils.logging import log_runtime_error
@@ -33,16 +33,18 @@ class StrategyErrorHandler:
 
     def wrap_strategy(self, func: Callable) -> Callable:
         """Wrap strategy function with error handling."""
+
         @wraps(func)
         def wrapper():
             try:
                 print(f"Executing strategy function: {func.__name__}")
                 result = func()
-                print(f"Strategy function completed successfully")
+                print("Strategy function completed successfully")
                 return result
             except Exception as e:
                 self._handle_error(e, func.__name__)
                 raise
+
         return wrapper
 
     def _handle_error(self, error: Exception, func_name: str):
@@ -62,7 +64,7 @@ class StrategyErrorHandler:
         if error_context:
             self._print_error_context(error_context)
 
-        print(f"  Full traceback:")
+        print("  Full traceback:")
         print(error_traceback)
 
         log_runtime_error(
@@ -71,10 +73,10 @@ class StrategyErrorHandler:
             error_traceback=error_traceback,
             strategy_function=func_name,
             timestamp=self.sandbox.current_time.isoformat() if self.sandbox.current_time else None,
-            strategy_code_context=error_context
+            strategy_code_context=error_context,
         )
 
-    def _extract_error_context(self, error: Exception) -> Optional[Dict]:
+    def _extract_error_context(self, error: Exception) -> dict | None:
         """Extract strategy code context from error traceback."""
         try:
             tb = error.__traceback__
@@ -85,32 +87,29 @@ class StrategyErrorHandler:
                 filename = frame.f_code.co_filename
                 line_no = tb.tb_lineno
 
-                if filename == '<string>':
-                    if self.strategy_code:
-                        strategy_lines = self.strategy_code.split('\n')
-                        if 1 <= line_no <= len(strategy_lines):
-                            error_line = strategy_lines[line_no - 1].strip()
-                            strategy_frames.append({
-                                'line_no': line_no,
-                                'code': error_line,
-                                'function': frame.f_code.co_name
-                            })
+                if filename == "<string>" and self.strategy_code:
+                    strategy_lines = self.strategy_code.split("\n")
+                    if 1 <= line_no <= len(strategy_lines):
+                        error_line = strategy_lines[line_no - 1].strip()
+                        strategy_frames.append(
+                            {"line_no": line_no, "code": error_line, "function": frame.f_code.co_name}
+                        )
                 tb = tb.tb_next
 
             if strategy_frames:
                 return {
-                    'error_frames': strategy_frames,
-                    'primary_error_line': strategy_frames[-1]['line_no'],
-                    'primary_error_code': strategy_frames[-1]['code']
+                    "error_frames": strategy_frames,
+                    "primary_error_line": strategy_frames[-1]["line_no"],
+                    "primary_error_code": strategy_frames[-1]["code"],
                 }
             return None
 
         except Exception:
             return None
 
-    def _print_error_context(self, context: Dict):
+    def _print_error_context(self, context: dict):
         """Print formatted error context showing code lines involved."""
-        print(f"  Strategy Code Error Details:")
-        for frame in context['error_frames']:
+        print("  Strategy Code Error Details:")
+        for frame in context["error_frames"]:
             print(f"    Line {frame['line_no']} in {frame['function']}: {frame['code']}")
         print(f"  Primary error at line {context['primary_error_line']}: {context['primary_error_code']}")

@@ -7,9 +7,8 @@ utilities. All data is expected to be pre-downloaded (e.g. via
 error is raised.
 """
 
-import os
 import logging
-from typing import Optional
+import os
 
 import pandas as pd
 
@@ -59,6 +58,7 @@ DEFAULT_SPOT_SYMBOLS = {
 
 # ── Cache filename generation ─────────────────────────────────────────
 
+
 def generate_cache_filename(
     exchange: str,
     symbol: str,
@@ -77,6 +77,7 @@ def generate_cache_filename(
 
 # ── CSV loading ───────────────────────────────────────────────────────
 
+
 def load_csv(path: str) -> pd.DataFrame:
     """Load a CSV cache file and return a properly indexed DataFrame.
 
@@ -93,13 +94,9 @@ def load_csv(path: str) -> pd.DataFrame:
 
     if "timestamp" in data.columns:
         if pd.api.types.is_numeric_dtype(data["timestamp"]):
-            data["timestamp"] = pd.to_datetime(
-                data["timestamp"], unit="ms", utc=True, errors="coerce"
-            )
+            data["timestamp"] = pd.to_datetime(data["timestamp"], unit="ms", utc=True, errors="coerce")
         else:
-            data["timestamp"] = pd.to_datetime(
-                data["timestamp"], utc=True, errors="coerce"
-            )
+            data["timestamp"] = pd.to_datetime(data["timestamp"], utc=True, errors="coerce")
         data = data.dropna(subset=["timestamp"])
 
     data.set_index("timestamp", inplace=True)

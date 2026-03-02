@@ -6,10 +6,7 @@ an exchange sandbox. Exchange SDKs are lazily imported so they're only
 required when actually creating a sandbox for that exchange.
 """
 
-from typing import Optional
-
 from .._core.sandbox_base import VibeSandboxBase
-
 
 SUPPORTED_EXCHANGES = [
     "hyperliquid",
@@ -22,8 +19,8 @@ SUPPORTED_EXCHANGES = [
 
 def create_sandbox(
     exchange: str,
-    api_key: Optional[str] = None,
-    api_secret: Optional[str] = None,
+    api_key: str | None = None,
+    api_secret: str | None = None,
     mode: str = "live",
     **kwargs,
 ) -> VibeSandboxBase:
@@ -48,33 +45,24 @@ def create_sandbox(
 
     if exchange == "hyperliquid":
         from .hyperliquid import HyperliquidSandbox
-        return HyperliquidSandbox(
-            api_key=api_key, api_secret=api_secret, mode=mode, **kwargs
-        )
+
+        return HyperliquidSandbox(api_key=api_key, api_secret=api_secret, mode=mode, **kwargs)
     elif exchange == "extended":
         from .extended import ExtendedSandbox
-        return ExtendedSandbox(
-            api_key=api_key, api_secret=api_secret, mode=mode, **kwargs
-        )
+
+        return ExtendedSandbox(api_key=api_key, api_secret=api_secret, mode=mode, **kwargs)
     elif exchange == "paradex":
         from .paradex import ParadexSandbox
-        return ParadexSandbox(
-            api_key=api_key, api_secret=api_secret, mode=mode, **kwargs
-        )
+
+        return ParadexSandbox(api_key=api_key, api_secret=api_secret, mode=mode, **kwargs)
     elif exchange == "lighter":
         from .lighter import LighterSandbox
-        return LighterSandbox(
-            api_key=api_key, api_secret=api_secret, mode=mode, **kwargs
-        )
+
+        return LighterSandbox(api_key=api_key, api_secret=api_secret, mode=mode, **kwargs)
     elif exchange in ("aster", "aster_testnet"):
         from .aster import AsterSandbox
+
         testnet = exchange == "aster_testnet"
-        return AsterSandbox(
-            api_key=api_key, api_secret=api_secret, mode=mode,
-            testnet=testnet, **kwargs
-        )
+        return AsterSandbox(api_key=api_key, api_secret=api_secret, mode=mode, testnet=testnet, **kwargs)
     else:
-        raise ValueError(
-            f"Unsupported exchange: {exchange}. "
-            f"Supported: {SUPPORTED_EXCHANGES}"
-        )
+        raise ValueError(f"Unsupported exchange: {exchange}. Supported: {SUPPORTED_EXCHANGES}")

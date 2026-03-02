@@ -3,6 +3,7 @@ JSON serialization utilities for trading data structures.
 """
 
 import json
+
 import pandas as pd
 
 
@@ -20,18 +21,18 @@ def json_serializable(obj):
     elif isinstance(obj, pd.Timestamp):
         return obj.isoformat()
     elif isinstance(obj, pd.DataFrame):
-        return obj.to_dict(orient='records')
+        return obj.to_dict(orient="records")
     elif isinstance(obj, pd.Series):
         return obj.to_dict()
-    elif hasattr(obj, 'isoformat'):
+    elif hasattr(obj, "isoformat"):
         return obj.isoformat()
-    elif hasattr(obj, 'tolist'):
+    elif hasattr(obj, "tolist"):
         return obj.tolist()
     else:
         try:
-            if hasattr(obj, 'to_dict') and not isinstance(obj, dict):
+            if hasattr(obj, "to_dict") and not isinstance(obj, dict):
                 return json_serializable(obj.to_dict())
-            elif hasattr(obj, '__dict__'):
+            elif hasattr(obj, "__dict__"):
                 return json_serializable(obj.__dict__)
             else:
                 return str(obj)
@@ -41,6 +42,7 @@ def json_serializable(obj):
 
 def safe_json_dumps(obj):
     """Safely convert object to JSON string with custom serialization."""
+
     def default_serializer(o):
         return json_serializable(o)
 

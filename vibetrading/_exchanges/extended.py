@@ -6,25 +6,25 @@ Requires: pip install vibetrading[extended]
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Any
 
 import pandas as pd
 
-from .base import LiveSandboxBase
 from .._models.orders import (
-    PerpAccountSummary, PerpPositionSummary,
-    CancelOrdersResponse, PerpOrderResponse, PerpOrder,
+    CancelOrdersResponse,
+    PerpAccountSummary,
 )
 from .._utils.notification import NotificationDeduplicator
+from .base import LiveSandboxBase
 
 logger = logging.getLogger(__name__)
 
 try:
     from x10.perpetual.accounts import StarkPerpetualAccount
-    from x10.perpetual.trading_client import PerpetualTradingClient
-    from x10.perpetual.stream_client import PerpetualStreamClient
     from x10.perpetual.configuration import STARKNET_MAINNET_CONFIG
-    from x10.perpetual.orders import OrderSide
+    from x10.perpetual.stream_client import PerpetualStreamClient
+    from x10.perpetual.trading_client import PerpetualTradingClient
+
     _HAS_X10 = True
 except ImportError:
     _HAS_X10 = False
@@ -35,21 +35,18 @@ class ExtendedSandbox(LiveSandboxBase):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_secret: Optional[str] = None,
+        api_key: str | None = None,
+        api_secret: str | None = None,
         mode: str = "live",
         address: str = "",
         public_key: str = "",
         private_key: str = "",
         vault: int = 0,
-        notification_deduplicator: Optional[NotificationDeduplicator] = None,
+        notification_deduplicator: NotificationDeduplicator | None = None,
         **kwargs,
     ):
         if not _HAS_X10:
-            raise ImportError(
-                "x10 SDK not installed. Install with: "
-                "pip install vibetrading[extended]"
-            )
+            raise ImportError("x10 SDK not installed. Install with: pip install vibetrading[extended]")
 
         super().__init__(
             exchange_name="extended",
@@ -62,13 +59,15 @@ class ExtendedSandbox(LiveSandboxBase):
         self.account_address = address
 
         self.stark_account = StarkPerpetualAccount(
-            vault=vault, private_key=private_key,
-            public_key=public_key, api_key=api_key,
+            vault=vault,
+            private_key=private_key,
+            public_key=public_key,
+            api_key=api_key,
         )
         self.client = PerpetualTradingClient(STARKNET_MAINNET_CONFIG, self.stark_account)
         self.stream_client = PerpetualStreamClient(api_url=STARKNET_MAINNET_CONFIG.stream_url)
 
-        self.orderbook_cache: Dict[str, Dict[str, Any]] = {}
+        self.orderbook_cache: dict[str, dict[str, Any]] = {}
         logger.info("ExtendedSandbox ready (mode=%s)", mode)
 
     # -- Minimal stub implementations --------------------------------
@@ -152,6 +151,7 @@ class ExtendedSandbox(LiveSandboxBase):
 
     def get_spot_summary(self):
         from .._models.orders import SpotAccountSummary
+
         return SpotAccountSummary().to_dict()
 
     def get_futures_unrealized_pnl(self, asset=None):
