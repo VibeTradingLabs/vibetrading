@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **`vibetrading.evolution` module**: Removed `StrategyEvolver`, `evolve()`, and related dataclasses (`EvolutionStep`, `EvolutionResult`)
+- Removed `vibetrading.evolve()` top-level shortcut
+- Removed `examples/07_evolve_strategy.py`
+
 ## [0.2.1] - 2026-03-03
 
 ### Added

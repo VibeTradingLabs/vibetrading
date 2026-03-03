@@ -65,10 +65,9 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 vibetrading/
-├── __init__.py          # Public API: vibe decorator, evolve()
+├── __init__.py          # Public API: vibe decorator
 ├── strategy.py          # generate(), validate(), analyze()
 ├── backtest.py          # BacktestEngine, run()
-├── evolution.py         # StrategyEvolver, evolve()
 ├── tools.py             # download_data(), load_csv()
 ├── cli.py               # Command-line interface
 ├── templates/           # Built-in strategy templates

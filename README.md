@@ -5,7 +5,7 @@
 [![Python >= 3.10](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://pypi.org/project/vibetrading/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Agent-first trading framework for cryptocurrency. Describe strategies in natural language, generate executable Python code, backtest on historical data, and iteratively improve with LLM-powered analysis.
+Agent-first trading framework for cryptocurrency. Describe strategies in natural language, generate executable Python code, backtest on historical data, and analyze with LLM-powered insights.
 
 ## Installation
 
@@ -94,22 +94,6 @@ for s in report.suggestions:
     print(f"  → {s}")
 ```
 
-### 5. Evolve
-
-Iteratively improve through generate → backtest → analyze feedback loops:
-
-```python
-result = vibetrading.evolve(
-    "BTC momentum strategy with RSI and SMA crossover, 3x leverage",
-    iterations=3,
-    model="claude-sonnet-4-20250514",
-    interval="1h",
-)
-
-print(f"Best score: {result.best_score}/10")
-print(result.best_code)
-```
-
 ## CLI
 
 Run everything from the terminal:
@@ -135,10 +119,8 @@ vibetrading backtest strategy.py --json
 ## How It Works
 
 ```
-Describe  ──▶  Generate  ──▶  Validate  ──▶  Backtest  ──▶  Analyze  ──▶  Evolve
-(prompt)       (LLM)          (static)       (engine)       (LLM)         (loop)
-                  ▲                                                          │
-                  └────────────────── feedback ───────────────────────────────┘
+Describe  ──▶  Generate  ──▶  Validate  ──▶  Backtest  ──▶  Analyze
+(prompt)       (LLM)          (static)       (engine)       (LLM)
 ```
 
 1. **Describe** — Write what you want in plain English.
@@ -146,7 +128,6 @@ Describe  ──▶  Generate  ──▶  Validate  ──▶  Backtest  ──�
 3. **Validate** — Static analysis catches common errors before execution.
 4. **Backtest** — Run against historical data with realistic simulation.
 5. **Analyze** — An LLM evaluates results: scores performance, finds weaknesses, suggests fixes.
-6. **Evolve** — Repeat the loop. Each iteration feeds analysis back to the generator.
 
 ## Features
 
@@ -235,10 +216,9 @@ qty = risk_per_trade_size(balance=10000, risk_pct=0.01, entry=50000, stop_loss=4
 
 | Module | Purpose |
 |---|---|
-| `vibetrading` | `vibe` decorator, `evolve()` |
+| `vibetrading` | `vibe` decorator |
 | `vibetrading.strategy` | `generate()`, `validate()`, `analyze()`, prompt templates |
 | `vibetrading.backtest` | `BacktestEngine`, `run()`, `StaticSandbox` |
-| `vibetrading.evolution` | `StrategyEvolver`, `evolve()` |
 | `vibetrading.tools` | `download_data()`, `load_csv()` |
 | `vibetrading.templates` | `momentum`, `mean_reversion`, `grid`, `dca`, `multi_momentum` |
 | `vibetrading.indicators` | `sma`, `ema`, `rsi`, `bbands`, `atr`, `macd`, `stochastic`, `vwap` |
@@ -255,7 +235,6 @@ See the [`examples/`](examples/) directory for complete working strategies:
 4. Custom strategy with technical indicators
 5. Multi-asset portfolio
 6. Live trading setup
-7. Strategy evolution loop
 
 ## Contributing
 

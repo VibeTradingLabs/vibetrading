@@ -437,8 +437,6 @@ Future additions:
 
 Multi-agent strategy orchestration
 
-Evolutionary strategy optimization (genetic/tournament-based)
-
 RL-based strategy refinement
 
 Strategy marketplace
