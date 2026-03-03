@@ -537,6 +537,7 @@ class BacktestEngine:
                     "final_balances": self.sandbox.balances.copy(),
                     "total_trades": len(self.sandbox.trades),
                     "results": self.get_results(),
+                    "equity_curve": self.get_equity_curve(),
                     "metrics": final,
                     "simulation_info": {
                         "steps": step,
@@ -562,6 +563,37 @@ class BacktestEngine:
 
     def get_results(self) -> pd.DataFrame:
         return pd.DataFrame(self.results)
+
+    def get_equity_curve(self) -> pd.DataFrame:
+        """Return the equity curve as a DataFrame with timestamps and derived columns.
+
+        Columns:
+        - ``timestamp``: Time of each observation (index)
+        - ``total_value``: Portfolio value at each step
+        - ``returns``: Period-over-period returns
+        - ``cumulative_returns``: Cumulative returns from start
+        - ``drawdown``: Drawdown from running peak (negative values)
+        - ``peak``: Running peak portfolio value
+
+        Returns:
+            pd.DataFrame with DatetimeIndex if timestamps available, else integer index.
+        """
+        if not self.results:
+            return pd.DataFrame(columns=["total_value", "returns", "cumulative_returns", "drawdown", "peak"])
+
+        df = pd.DataFrame(self.results)
+
+        if "timestamp" in df.columns:
+            df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+            df = df.set_index("timestamp")
+
+        initial = df["total_value"].iloc[0]
+        df["returns"] = df["total_value"].pct_change()
+        df["cumulative_returns"] = (df["total_value"] / initial) - 1
+        df["peak"] = df["total_value"].cummax()
+        df["drawdown"] = (df["total_value"] - df["peak"]) / df["peak"]
+
+        return df[["total_value", "returns", "cumulative_returns", "drawdown", "peak"]]
 
     def get_metrics(self) -> dict[str, Any]:
         if not self.results:

@@ -150,6 +150,53 @@ def strategy():
         assert sim["liquidated"] is False
         assert sim["steps"] > 0
 
+    def test_equity_curve_in_results(self):
+        data = {"BTC/1h": _make_ohlcv()}
+        engine = BacktestEngine(
+            interval="1h",
+            initial_balances={"USDC": 10000},
+            start_time=datetime(2025, 1, 1, tzinfo=timezone.utc),
+            end_time=datetime(2025, 1, 5, tzinfo=timezone.utc),
+            data=data,
+        )
+        result = engine.run(SIMPLE_STRATEGY)
+        assert "equity_curve" in result
+        ec = result["equity_curve"]
+        assert "total_value" in ec.columns
+        assert "returns" in ec.columns
+        assert "cumulative_returns" in ec.columns
+        assert "drawdown" in ec.columns
+        assert "peak" in ec.columns
+        assert len(ec) > 0
+
+    def test_equity_curve_drawdown_negative_or_zero(self):
+        data = {"BTC/1h": _make_ohlcv()}
+        engine = BacktestEngine(
+            interval="1h",
+            initial_balances={"USDC": 10000},
+            start_time=datetime(2025, 1, 1, tzinfo=timezone.utc),
+            end_time=datetime(2025, 1, 5, tzinfo=timezone.utc),
+            data=data,
+        )
+        result = engine.run(SIMPLE_STRATEGY)
+        ec = result["equity_curve"]
+        # Drawdown should always be <= 0
+        assert (ec["drawdown"] <= 1e-10).all()
+
+    def test_equity_curve_peak_monotonic(self):
+        data = {"BTC/1h": _make_ohlcv()}
+        engine = BacktestEngine(
+            interval="1h",
+            initial_balances={"USDC": 10000},
+            start_time=datetime(2025, 1, 1, tzinfo=timezone.utc),
+            end_time=datetime(2025, 1, 5, tzinfo=timezone.utc),
+            data=data,
+        )
+        result = engine.run(SIMPLE_STRATEGY)
+        ec = result["equity_curve"]
+        # Peak should be monotonically non-decreasing
+        assert (ec["peak"].diff().dropna() >= -1e-10).all()
+
     def test_mute_strategy_prints(self):
         data = {"BTC/1h": _make_ohlcv()}
         engine = BacktestEngine(
