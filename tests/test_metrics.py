@@ -225,6 +225,113 @@ class TestMetricsCalculator:
         m = calc.calculate()
         assert m["calmar_ratio"] > 0
 
+    def test_zero_initial_value(self):
+        bt = _FakeBacktest(initial_value=0.0, current_value=100.0)
+        calc = MetricsCalculator(bt)
+        m = calc.calculate()
+        assert m["total_return"] == 0.0
+        assert m["cagr"] == 0.0
+
+    def test_single_result(self):
+        results = [{"total_value": 10000.0}]
+        bt = _FakeBacktest(results=results)
+        calc = MetricsCalculator(bt)
+        m = calc.calculate()
+        assert m["cagr"] == 0.0
+        assert m["max_drawdown_duration_hours"] == 0.0
+
+    def test_no_downside_returns(self):
+        """Sortino should return capped value when there are only positive returns."""
+        results = [{"total_value": 10000.0 + i * 100} for i in range(50)]
+        bt = _FakeBacktest(results=results, initial_value=10000.0, current_value=14900.0)
+        calc = MetricsCalculator(bt)
+        m = calc.calculate()
+        # With only positive returns, Sortino should be high (capped at 100)
+        assert m["sortino_ratio"] > 0
+
+    def test_calmar_no_drawdown(self):
+        """Calmar should cap at 100 when no drawdown and positive CAGR."""
+        results = [{"total_value": 10000.0 + i * 50} for i in range(100)]
+        bt = _FakeBacktest(results=results, initial_value=10000.0, current_value=14950.0)
+        calc = MetricsCalculator(bt)
+        m = calc.calculate()
+        assert m["calmar_ratio"] == 100.0
+
+    def test_breakeven_trades(self):
+        trades = [
+            {"action": "sell", "pnl": 0.0, "asset": "BTC"},
+            {"action": "sell", "pnl": 0.0, "asset": "BTC"},
+        ]
+        results = [{"total_value": 10000.0}]
+        bt = _FakeBacktest(results=results, trades=trades)
+        calc = MetricsCalculator(bt)
+        m = calc.calculate()
+        assert m["win_rate"] == 0.0
+        assert m["profit_factor"] == 0.0
+
+    def test_all_winning_trades(self):
+        trades = [
+            {"action": "sell", "pnl": 100.0, "asset": "BTC"},
+            {"action": "sell", "pnl": 200.0, "asset": "BTC"},
+        ]
+        results = [{"total_value": 10000.0}, {"total_value": 10300.0}]
+        bt = _FakeBacktest(results=results, trades=trades, current_value=10300.0)
+        calc = MetricsCalculator(bt)
+        m = calc.calculate()
+        assert m["win_rate"] == 1.0
+        assert m["profit_factor"] == 100.0  # Capped when no losses
+
+    def test_all_losing_trades(self):
+        trades = [
+            {"action": "sell", "pnl": -100.0, "asset": "BTC"},
+            {"action": "sell", "pnl": -50.0, "asset": "BTC"},
+        ]
+        results = [{"total_value": 10000.0}, {"total_value": 9850.0}]
+        bt = _FakeBacktest(results=results, trades=trades, current_value=9850.0)
+        calc = MetricsCalculator(bt)
+        m = calc.calculate()
+        assert m["win_rate"] == 0.0
+        assert m["profit_factor"] == 0.0
+
+    def test_interval_conversions(self):
+        """Test different interval strings for period calculations."""
+        for interval, expect_gt_zero in [("15m", True), ("4h", True), ("1d", True)]:
+            results = [{"total_value": 10000.0 + i * 10} for i in range(50)]
+            bt = _FakeBacktest(results=results, initial_value=10000.0, current_value=10490.0, interval=interval)
+            calc = MetricsCalculator(bt)
+            m = calc.calculate()
+            assert m["cagr"] > 0 if expect_gt_zero else True
+
+    def test_drawdown_duration_no_recovery(self):
+        """Drawdown that never recovers should count all candles from peak."""
+        results = [
+            {"total_value": 12000.0},  # peak
+            {"total_value": 11000.0},
+            {"total_value": 10000.0},
+            {"total_value": 9000.0},
+        ]
+        bt = _FakeBacktest(results=results, initial_value=12000.0, current_value=9000.0)
+        calc = MetricsCalculator(bt)
+        m = calc.calculate()
+        assert m["max_drawdown_duration_hours"] == 3.0  # 3 candles × 1h
+
+    def test_estimate_win_rate_from_returns_positive(self):
+        """When no PnL data available, win rate is estimated from returns."""
+        trades = [{"asset": "BTC"}, {"asset": "BTC"}]  # No pnl or action
+        results = [{"total_value": 10000.0}, {"total_value": 11000.0}]
+        bt = _FakeBacktest(results=results, trades=trades, current_value=11000.0)
+        calc = MetricsCalculator(bt)
+        m = calc.calculate()
+        assert m["win_rate"] > 0.35  # Estimated higher for positive return
+
+    def test_estimate_win_rate_from_returns_negative(self):
+        trades = [{"asset": "BTC"}, {"asset": "BTC"}]
+        results = [{"total_value": 10000.0}, {"total_value": 9000.0}]
+        bt = _FakeBacktest(results=results, trades=trades, current_value=9000.0)
+        calc = MetricsCalculator(bt)
+        m = calc.calculate()
+        assert m["win_rate"] < 0.35  # Estimated lower for negative return
+
     def test_largest_win_and_loss(self):
         trades = [
             {"action": "sell", "pnl": 50.0, "asset": "BTC"},

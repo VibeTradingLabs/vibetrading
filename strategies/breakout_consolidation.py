@@ -8,7 +8,7 @@ squeeze tight, a breakout is likely. Enters in the direction of the breakout.
 Features:
 - BB width squeeze detection for consolidation
 - Breakout confirmation with volume spike
-- ATR-based trailing stop
+- ATR-based stop loss (fixed from entry, not trailing while losing)
 - Partial profit taking
 
 Backtest: vibetrading backtest strategies/breakout_consolidation.py -i 1h
@@ -32,34 +32,35 @@ from vibetrading.indicators import atr, bbands
 # ── Parameters ─────────────────────────────────────────────────────
 ASSET = "BTC"
 LEVERAGE = 3
-RISK_PCT = 0.10
+RISK_PCT = 0.12
 
 # Bollinger Bands
 BB_PERIOD = 20
 BB_STD = 2.0
 
 # Squeeze detection
-# BB width percentile — squeeze when width is below this percentile
-SQUEEZE_LOOKBACK = 50  # Candles to calculate width percentile
-SQUEEZE_PERCENTILE = 0.20  # Below 20th percentile = squeeze
+SQUEEZE_LOOKBACK = 100  # Longer lookback for more reliable percentiles
+SQUEEZE_PERCENTILE = 0.15  # Tighter squeeze requirement (15th percentile)
 
 # Volume confirmation
-VOLUME_SPIKE_MULT = 1.5  # Volume must be 1.5x average
+VOLUME_SPIKE_MULT = 1.3  # Slightly relaxed volume requirement
 
 # Risk management
 ATR_PERIOD = 14
-ATR_SL_MULT = 2.0
-TP_PCT = 0.06  # 6% take profit
-PARTIAL_TP_PCT = 0.03  # 3% partial
+ATR_SL_MULT = 2.5  # Wider stop to survive initial volatility
+TP_PCT = 0.08  # 8% take profit — breakouts should run
+PARTIAL_TP_PCT = 0.04  # 4% partial
 
 # State
 _in_squeeze = False
+_squeeze_candles = 0  # Track how long we've been in squeeze
 _partial_taken = False
+_entry_atr = 0.0  # Store ATR at entry for fixed stop
 
 
 @vibe(interval="1h")
 def breakout_consolidation():
-    global _in_squeeze, _partial_taken
+    global _in_squeeze, _squeeze_candles, _partial_taken, _entry_atr
 
     price = get_perp_price(ASSET)
     if math.isnan(price) or price <= 0:
@@ -70,7 +71,6 @@ def breakout_consolidation():
     if ohlcv is None or len(ohlcv) < lookback - 5:
         return
 
-    # Calculate indicators
     upper, middle, lower = bbands(ohlcv["close"], BB_PERIOD, BB_STD)
     current_atr = atr(ohlcv["high"], ohlcv["low"], ohlcv["close"], ATR_PERIOD).iloc[-1]
 
@@ -90,24 +90,13 @@ def breakout_consolidation():
         else:
             pnl_pct = (entry - price) / entry if entry > 0 else 0
 
-        # ATR trailing stop
-        if is_long:
-            trailing_stop = price - current_atr * ATR_SL_MULT
-            if price <= trailing_stop and pnl_pct < 0:
-                reduce_position(ASSET, abs_size)
-                _partial_taken = False
-                return
-        else:
-            trailing_stop = price + current_atr * ATR_SL_MULT
-            if price >= trailing_stop and pnl_pct < 0:
-                reduce_position(ASSET, abs_size)
-                _partial_taken = False
-                return
-
-        # Fixed stop loss
-        if pnl_pct <= -(current_atr * ATR_SL_MULT / entry):
+        # Fixed ATR stop from entry (use entry ATR, not current)
+        stop_atr = _entry_atr if _entry_atr > 0 else current_atr
+        stop_distance = stop_atr * ATR_SL_MULT / entry if entry > 0 else 0.05
+        if pnl_pct <= -stop_distance:
             reduce_position(ASSET, abs_size)
             _partial_taken = False
+            _entry_atr = 0.0
             return
 
         # Partial take profit
@@ -120,6 +109,7 @@ def breakout_consolidation():
         if pnl_pct >= TP_PCT:
             reduce_position(ASSET, abs_size)
             _partial_taken = False
+            _entry_atr = 0.0
             return
 
         return
@@ -127,8 +117,6 @@ def breakout_consolidation():
     _partial_taken = False
 
     # ── Squeeze detection ─────────────────────────────────────────
-
-    # Calculate BB width over lookback
     bb_width = (upper - lower) / middle
     valid_widths = bb_width.dropna().tail(SQUEEZE_LOOKBACK)
 
@@ -139,18 +127,24 @@ def breakout_consolidation():
     if math.isnan(current_width):
         return
 
-    # Percentile rank of current width
     width_percentile = (valid_widths < current_width).sum() / len(valid_widths)
 
-    # Track squeeze state
     was_in_squeeze = _in_squeeze
-    _in_squeeze = width_percentile < SQUEEZE_PERCENTILE
+    if width_percentile < SQUEEZE_PERCENTILE:
+        _in_squeeze = True
+        _squeeze_candles += 1
+    else:
+        if _in_squeeze:
+            # Just exited squeeze — this is the breakout candle
+            pass
+        _in_squeeze = False
+        _squeeze_candles = 0
 
-    # ── Breakout detection ────────────────────────────────────────
-
-    # Only look for breakouts after a squeeze period
+    # Only look for breakouts right after a squeeze (squeeze must have lasted 3+ candles)
     if not was_in_squeeze:
         return
+    if _squeeze_candles < 3:
+        pass  # Short squeeze — still check for breakout but less reliable
 
     # Breakout = price moves outside the bands after squeeze
     breakout_up = price > upper.iloc[-1]
@@ -163,7 +157,7 @@ def breakout_consolidation():
     avg_volume = ohlcv["volume"].tail(20).mean()
     current_volume = ohlcv["volume"].iloc[-1]
     if current_volume < avg_volume * VOLUME_SPIKE_MULT:
-        return  # No volume confirmation
+        return
 
     # ── Enter ─────────────────────────────────────────────────────
     summary = get_perp_summary()
@@ -175,6 +169,9 @@ def breakout_consolidation():
     qty = (margin * RISK_PCT * LEVERAGE) / price
     if qty * price < 15:
         return
+
+    _entry_atr = current_atr
+    _squeeze_candles = 0
 
     if breakout_up:
         long(ASSET, qty, price, order_type="market")

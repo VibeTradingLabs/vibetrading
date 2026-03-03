@@ -2,13 +2,14 @@
 Multi-Asset Relative Strength Momentum Strategy
 
 Ranks BTC, ETH, and SOL by recent momentum (rate of change over lookback).
-Goes long the strongest asset and avoids (or shorts) the weakest.
+Goes long the strongest asset when it has clear upward momentum.
 
 Features:
 - Relative strength ranking across assets
 - Only trades the top-ranked asset
 - EMA trend filter to avoid counter-trend entries
 - ATR-based position sizing for volatility normalization
+- Longer holding periods to reduce churn
 
 Backtest: vibetrading backtest strategies/multi_asset_momentum.py -i 1h
 """
@@ -30,16 +31,21 @@ from vibetrading.indicators import atr, ema
 # ── Parameters ─────────────────────────────────────────────────────
 ASSETS = ["BTC", "ETH", "SOL"]
 LEVERAGE = 3
-RISK_PCT = 0.08  # Per asset
+RISK_PCT = 0.12
 
-# Momentum
-ROC_PERIOD = 24  # Rate of change lookback (24 hours)
+# Momentum — longer lookback for more stable signals
+ROC_PERIOD = 48  # 48h rate of change (was 24)
 TREND_EMA_PERIOD = 50
 
-# Risk management
-TP_PCT = 0.045
-SL_PCT = 0.020
-REBALANCE_PERIOD = 12  # Re-evaluate every 12 candles
+# Minimum momentum threshold — avoid weak signals
+MIN_ROC = 0.01  # At least 1% momentum
+
+# Risk management — wider stops
+TP_PCT = 0.06  # 6% take profit (was 4.5%)
+SL_PCT = 0.035  # 3.5% stop loss (was 2%)
+
+# Rebalance period — longer to reduce turnover
+REBALANCE_PERIOD = 24  # Re-evaluate every 24h (was 12)
 
 # State
 _candles_since_rebalance = 0
@@ -121,12 +127,11 @@ def multi_asset_momentum():
     if not rankings:
         return
 
-    # Sort by momentum — strongest first
     rankings.sort(key=lambda x: x["roc"], reverse=True)
     best = rankings[0]
 
-    # Only enter if best asset has positive momentum AND is above trend
-    if best["roc"] <= 0 or not best["above_trend"]:
+    # Only enter if best asset has strong positive momentum AND is above trend
+    if best["roc"] < MIN_ROC or not best["above_trend"]:
         return
 
     best_asset = best["asset"]

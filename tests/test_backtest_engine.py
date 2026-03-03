@@ -197,6 +197,44 @@ def strategy():
         # Peak should be monotonically non-decreasing
         assert (ec["peak"].diff().dropna() >= -1e-10).all()
 
+    def test_submodule_imports_in_sandbox(self):
+        """Regression test: strategies can import vibetrading.indicators and vibetrading.sizing."""
+        strategy_with_imports = """
+import math
+from vibetrading import vibe, get_perp_price, get_perp_summary, set_leverage, long, get_perp_position, reduce_position
+from vibetrading.indicators import sma, rsi
+from vibetrading.sizing import fixed_fraction_size
+
+@vibe
+def strategy():
+    price = get_perp_price("BTC")
+    if math.isnan(price):
+        return
+    # Just verify the imports work — don't need to use them meaningfully
+    position = get_perp_position("BTC")
+    if position and position.get("size", 0) != 0:
+        return
+    summary = get_perp_summary()
+    margin = summary.get("available_margin", 0)
+    if margin < 100:
+        return
+    set_leverage("BTC", 2)
+    qty = (margin * 0.1 * 2) / price
+    if qty * price >= 15:
+        long("BTC", qty, price, order_type="market")
+"""
+        data = {"BTC/1h": _make_ohlcv()}
+        engine = BacktestEngine(
+            interval="1h",
+            initial_balances={"USDC": 10000},
+            start_time=datetime(2025, 1, 1, tzinfo=timezone.utc),
+            end_time=datetime(2025, 1, 3, tzinfo=timezone.utc),
+            data=data,
+        )
+        result = engine.run(strategy_with_imports)
+        assert result is not None
+        assert "metrics" in result
+
     def test_mute_strategy_prints(self):
         data = {"BTC/1h": _make_ohlcv()}
         engine = BacktestEngine(
