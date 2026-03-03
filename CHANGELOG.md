@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-03-03
+
+### Added
+- **Built-in technical indicators** (`vibetrading.indicators`): SMA, EMA, RSI, Bollinger Bands, ATR, MACD, Stochastic, VWAP — pure-pandas, no `ta` library needed
+- **Position sizing utilities** (`vibetrading.sizing`): Kelly criterion, fixed fraction, volatility-adjusted (ATR), risk-per-trade, max position size
+- **Multi-asset strategy template** (`multi_momentum`): Trade BTC/ETH/SOL simultaneously with independent TP/SL
+- **Enhanced analyzer**: Updated scoring guidelines and metrics summary with Sortino, Calmar, profit factor, expectancy, streaks
+- **LLM prompt improvements**: Indicators and sizing utilities documented in the generation system prompt
+- 63 new tests, 201 total all passing
+
+### Changed
+- Updated README with indicators, sizing, and module documentation
+
 ## [0.2.0] - 2026-03-03
 
 ### Added
