@@ -28,11 +28,18 @@ The ``vibe`` decorator is available at the package root for strategy code::
         ...
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 from ._core.decorator import vibe
 
 __all__ = [
     "__version__",
     "vibe",
+    "backtest",
+    "compare",
+    "indicators",
+    "sizing",
+    "strategy",
+    "templates",
+    "tools",
 ]

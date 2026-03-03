@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 import vibetrading.backtest
 import vibetrading.tools
-from vibetrading.templates import momentum, mean_reversion, dca
+from vibetrading.templates import dca, mean_reversion, momentum
 
 
 def main():

@@ -20,10 +20,11 @@ Usage:
 import os
 import sys
 from datetime import datetime, timezone
+
 from dotenv import load_dotenv
 
-import vibetrading.strategy
 import vibetrading.backtest
+import vibetrading.strategy
 import vibetrading.tools
 
 load_dotenv()

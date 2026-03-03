@@ -14,18 +14,20 @@ Usage:
 """
 
 import os
+
 from dotenv import load_dotenv
 
 import vibetrading.strategy
 
 load_dotenv()
 
+
 def generate_with_openai(user_prompt: str) -> str:
     """Generate strategy code using OpenAI's API."""
     try:
         import openai
     except ImportError:
-        raise ImportError("pip install openai")
+        raise ImportError("pip install openai") from None
 
     messages = vibetrading.strategy.build_generation_prompt(
         user_prompt,
@@ -48,7 +50,7 @@ def generate_with_anthropic(user_prompt: str) -> str:
     try:
         import anthropic
     except ImportError:
-        raise ImportError("pip install anthropic")
+        raise ImportError("pip install anthropic") from None
 
     messages = vibetrading.strategy.build_generation_prompt(
         user_prompt,
@@ -75,7 +77,7 @@ def closed_loop_generation(user_prompt: str, max_retries: int = 2) -> str:
     try:
         import openai
     except ImportError:
-        raise ImportError("pip install openai")
+        raise ImportError("pip install openai") from None
 
     client = openai.OpenAI()
     messages = vibetrading.strategy.build_generation_prompt(
@@ -146,15 +148,17 @@ def main():
         return
 
     # Generate with available provider
-    user_prompt = "BTC momentum: go long when RSI(14) drops below 30 and SMA(10) > SMA(20), " \
-                  "3x leverage, 10% position size, 8% TP, 4% SL"
+    user_prompt = (
+        "BTC momentum: go long when RSI(14) drops below 30 and SMA(10) > SMA(20), "
+        "3x leverage, 10% position size, 8% TP, 4% SL"
+    )
 
     if has_openai:
         print("\n--- Generating with OpenAI ---\n")
         code = generate_with_openai(user_prompt)
 
         print("Generated code (first 30 lines):")
-        for i, line in enumerate(code.split("\n")):
+        for _i, line in enumerate(code.split("\n")):
             print(f"  {line}")
         print("  ...")
 
@@ -181,7 +185,7 @@ def main():
         code = generate_with_anthropic(user_prompt)
 
         print("Generated code (first 30 lines):")
-        for i, line in enumerate(code.split("\n")[:30]):
+        for _i, line in enumerate(code.split("\n")[:30]):
             print(f"  {line}")
         print("  ...")
 

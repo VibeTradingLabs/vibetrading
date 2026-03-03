@@ -90,6 +90,9 @@ class LiveRunner:
         if spec is None:
             raise ImportError("Cannot create vibetrading module spec")
         self._mock_mod = importlib.util.module_from_spec(spec)
+        # Mark as a package so submodule imports work
+        self._mock_mod.__path__ = []
+        self._mock_mod.__package__ = "vibetrading"
 
         error_handler = StrategyErrorHandler(self.sandbox, strategy_code)
 
@@ -148,6 +151,22 @@ class LiveRunner:
         for name, obj in funcs.items():
             setattr(self._mock_mod, name, obj)
         sys.modules["vibetrading"] = self._mock_mod
+
+        # Register submodules so strategies can import them
+        try:
+            from vibetrading import indicators as _indicators_mod
+
+            sys.modules["vibetrading.indicators"] = _indicators_mod
+            self._mock_mod.indicators = _indicators_mod
+        except ImportError:
+            pass
+        try:
+            from vibetrading import sizing as _sizing_mod
+
+            sys.modules["vibetrading.sizing"] = _sizing_mod
+            self._mock_mod.sizing = _sizing_mod
+        except ImportError:
+            pass
 
         exec_globals = {"pd": pd, "np": np, "ta": None}
         try:

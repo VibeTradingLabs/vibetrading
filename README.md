@@ -94,6 +94,40 @@ for s in report.suggestions:
     print(f"  → {s}")
 ```
 
+## Live Trading
+
+Once your strategy passes backtesting, deploy it to a real exchange:
+
+```bash
+pip install "vibetrading[hyperliquid]"
+```
+
+```python
+import os, asyncio
+from dotenv import load_dotenv
+import vibetrading.live
+
+load_dotenv(".env.local")  # HYPERLIQUID_WALLET, HYPERLIQUID_PRIVATE_KEY
+
+strategy = open("strategies/rsi_mean_reversion.py").read()
+
+asyncio.run(
+    vibetrading.live.start(
+        strategy,
+        exchange="hyperliquid",
+        api_key=os.environ["HYPERLIQUID_WALLET"],
+        api_secret=os.environ["HYPERLIQUID_PRIVATE_KEY"],
+        interval="1m",
+    )
+)
+```
+
+**Same code runs in backtest and live** — the `@vibe` decorator, `get_perp_price()`, `long()`, etc. work identically in both contexts.
+
+Supported exchanges: **Hyperliquid**, **Paradex**, **Lighter**, **Aster**
+
+→ See the full [Live Trading Guide](docs/live-trading.md) for setup, credentials, and security best practices.
+
 ## CLI
 
 Run everything from the terminal:
@@ -119,8 +153,8 @@ vibetrading backtest strategy.py --json
 ## How It Works
 
 ```
-Describe  ──▶  Generate  ──▶  Validate  ──▶  Backtest  ──▶  Analyze
-(prompt)       (LLM)          (static)       (engine)       (LLM)
+Describe  ──▶  Generate  ──▶  Validate  ──▶  Backtest  ──▶  Analyze  ──▶  Deploy
+(prompt)       (LLM)          (static)       (engine)       (LLM)         (live)
 ```
 
 1. **Describe** — Write what you want in plain English.
@@ -128,6 +162,7 @@ Describe  ──▶  Generate  ──▶  Validate  ──▶  Backtest  ──�
 3. **Validate** — Static analysis catches common errors before execution.
 4. **Backtest** — Run against historical data with realistic simulation.
 5. **Analyze** — An LLM evaluates results: scores performance, finds weaknesses, suggests fixes.
+6. **Deploy** — Same code runs live on Hyperliquid, Paradex, Lighter, or Aster.
 
 ## Features
 
@@ -219,6 +254,9 @@ qty = risk_per_trade_size(balance=10000, risk_pct=0.01, entry=50000, stop_loss=4
 | `vibetrading` | `vibe` decorator |
 | `vibetrading.strategy` | `generate()`, `validate()`, `analyze()`, prompt templates |
 | `vibetrading.backtest` | `BacktestEngine`, `run()`, `StaticSandbox` |
+| `vibetrading.live` | `start()`, `start_sync()` — deploy to real exchanges |
+| `vibetrading.compare` | `run()`, `print_table()`, `to_dataframe()` — compare strategies |
+| `vibetrading.sandbox` | `create()`, `LiveRunner`, `SandboxBase` — exchange sandboxes |
 | `vibetrading.tools` | `download_data()`, `load_csv()` |
 | `vibetrading.templates` | `momentum`, `mean_reversion`, `grid`, `dca`, `multi_momentum` |
 | `vibetrading.indicators` | `sma`, `ema`, `rsi`, `bbands`, `atr`, `macd`, `stochastic`, `vwap` |

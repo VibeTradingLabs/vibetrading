@@ -12,6 +12,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `vibetrading.evolve()` top-level shortcut
 - Removed `examples/07_evolve_strategy.py`
 
+## [0.3.0] - 2026-03-03
+
+### Added
+- **`vibetrading.live` module** — Deploy strategies to real exchanges with `start()` and `start_sync()` convenience functions
+- **`vibetrading.compare` module** — Run and compare multiple strategies side by side with `run()`, `print_table()`, and `to_dataframe()`
+- **Live Trading Guide** (`docs/live-trading.md`) — Complete setup guide for Hyperliquid, Paradex, Lighter, and Aster with credential management and security best practices
+- **API Reference** (`docs/api-reference.md`) — Complete documentation for all public APIs, sandbox functions, indicators, sizing, and metrics
+- **Getting Started guide** (`docs/getting-started.md`) — Zero to running backtest in 5 minutes
+- **Configuration guide** (`docs/configuration.md`) — Environment variables, slippage, data options, project structure
+- **Live trading example** (`examples/10_live_trading.py`) — Hyperliquid deployment example
+- Error handler test suite (5 tests)
+- Metrics calculator edge case tests (10 tests)
+- Sandbox submodule import regression test
+
+### Fixed
+- **Sandbox submodule imports** — Strategies can now import `vibetrading.indicators`, `vibetrading.sizing`, and `vibetrading.templates` in both backtest and live contexts (was `ModuleNotFoundError`)
+- **LiveRunner submodule imports** — Same fix applied to the live trading runner
+
+### Changed
+- Tuned sample strategies for better performance:
+  - MACD: Dual EMA trend filter + 12-candle cooldown — 62% fewer trades
+  - Multi-asset momentum: 48h lookback + 24h rebalance + wider stops — loss halved
+  - Breakout: Fixed trailing stop logic, wider stops, better squeeze detection
+- README overhauled with live trading section, updated module table, deployment workflow
+- 247 tests total (up from 225), all passing
+
 ## [0.2.1] - 2026-03-03
 
 ### Added

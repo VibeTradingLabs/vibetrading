@@ -16,13 +16,15 @@ If the exchange API is unreachable (e.g. behind a firewall), pass the
 Usage:
     python examples/03_download_and_load.py
 """
-import os
-from datetime import datetime, timezone, timedelta
+
+from datetime import datetime, timedelta, timezone
+
 from dotenv import load_dotenv
 
 import vibetrading.tools
 
 load_dotenv()
+
 
 def main():
     assets = ["BTC", "ETH"]
@@ -50,8 +52,10 @@ def main():
         if df.empty:
             print(f"  {key}: empty (download failed or no data)")
         else:
-            print(f"  {key}: {len(df)} rows, "
-                  f"{df.index.min().strftime('%Y-%m-%d')} to {df.index.max().strftime('%Y-%m-%d')}")
+            print(
+                f"  {key}: {len(df)} rows, "
+                f"{df.index.min().strftime('%Y-%m-%d')} to {df.index.max().strftime('%Y-%m-%d')}"
+            )
 
     # Step 2: Load cached data back using data_loader
     print(f"\n{'=' * 60}")

@@ -8,8 +8,9 @@ Demonstrates the explicit download -> backtest workflow:
 Usage:
     python examples/01_backtest_sma_crossover.py
 """
-import os
+
 from datetime import datetime, timezone
+
 from dotenv import load_dotenv
 
 import vibetrading.backtest

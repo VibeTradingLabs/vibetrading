@@ -10,7 +10,6 @@ Usage:
 
 import vibetrading.strategy
 
-
 # ── Good strategy (passes validation) ──────────────────────────────────
 good_strategy = """
 import math
