@@ -230,6 +230,55 @@ def cmd_download(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_template(args: argparse.Namespace) -> int:
+    """Generate strategy from a template."""
+    from vibetrading.templates import get_template, list_templates
+
+    if args.list:
+        print("Available templates:")
+        for name in list_templates():
+            t = get_template(name)
+            print(f"  {name:<20} {t.__doc__.strip().splitlines()[0]}")
+        return 0
+
+    if not args.name:
+        print("Error: specify a template name or use --list", file=sys.stderr)
+        return 1
+
+    try:
+        template = get_template(args.name)
+    except KeyError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    # Parse extra key=value params
+    extra = {}
+    for param in args.params or []:
+        if "=" not in param:
+            print(f"Error: params must be key=value, got '{param}'", file=sys.stderr)
+            return 1
+        k, v = param.split("=", 1)
+        # Try to convert to number
+        try:
+            v = int(v)
+        except ValueError:
+            try:
+                v = float(v)
+            except ValueError:
+                pass
+        extra[k] = v
+
+    code = template.generate(**extra)
+
+    if args.output:
+        Path(args.output).write_text(code + "\n")
+        print(f"Strategy written to {args.output}")
+    else:
+        print(code)
+
+    return 0
+
+
 def cmd_version(_args: argparse.Namespace) -> int:
     """Print version."""
     print(f"vibetrading {vibetrading.__version__}")
@@ -291,6 +340,13 @@ def main() -> int:
     dl_parser.add_argument("-s", "--start", default="2025-01-01", help="Start date (default: 2025-01-01)")
     dl_parser.add_argument("--end", default="2025-07-01", help="End date (default: 2025-07-01)")
 
+    # template
+    tpl_parser = subparsers.add_parser("template", help="Generate strategy from a built-in template")
+    tpl_parser.add_argument("name", nargs="?", help="Template name (e.g., momentum, mean_reversion, grid, dca)")
+    tpl_parser.add_argument("-l", "--list", action="store_true", help="List available templates")
+    tpl_parser.add_argument("-o", "--output", help="Write generated code to a file")
+    tpl_parser.add_argument("params", nargs="*", help="Template parameters as key=value (e.g., asset=ETH leverage=5)")
+
     # version
     subparsers.add_parser("version", help="Show version")
 
@@ -304,6 +360,7 @@ def main() -> int:
         "backtest": cmd_backtest,
         "validate": cmd_validate,
         "download": cmd_download,
+        "template": cmd_template,
         "version": cmd_version,
     }
 
