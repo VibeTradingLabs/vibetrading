@@ -178,7 +178,7 @@ Describe  ──▶  Generate  ──▶  Validate  ──▶  Backtest  ──�
 - **CLI tool** — Generate, validate, backtest, and download from the terminal
 - **`py.typed`** — Full PEP 561 typing support
 - **CI/CD** — GitHub Actions with lint + test on Python 3.10/3.11/3.12
-- **135+ tests** — Comprehensive coverage of all core modules
+- **200+ tests** — Comprehensive coverage of all core modules
 
 ## Strategy Templates
 
@@ -202,6 +202,35 @@ code = dca.generate(asset="BTC", buy_amount=100, interval="1d")
 
 All templates are fully parameterizable and pass static validation.
 
+## Built-in Indicators
+
+Pure-pandas implementations — no `ta` library dependency:
+
+```python
+from vibetrading.indicators import rsi, sma, ema, bbands, atr, macd, stochastic, vwap
+
+ohlcv = get_futures_ohlcv("BTC", "1h", 50)
+rsi_14 = rsi(ohlcv["close"])
+upper, middle, lower = bbands(ohlcv["close"])
+macd_line, signal, hist = macd(ohlcv["close"])
+atr_14 = atr(ohlcv["high"], ohlcv["low"], ohlcv["close"])
+k, d = stochastic(ohlcv["high"], ohlcv["low"], ohlcv["close"])
+```
+
+## Position Sizing
+
+Built-in sizing methods for systematic risk management:
+
+```python
+from vibetrading.sizing import kelly_size, fixed_fraction_size, risk_per_trade_size
+
+# Kelly Criterion (half-Kelly default for reduced variance)
+qty = kelly_size(win_rate=0.55, avg_win=200, avg_loss=100, balance=10000, price=50000)
+
+# Fixed risk per trade based on stop-loss distance
+qty = risk_per_trade_size(balance=10000, risk_pct=0.01, entry=50000, stop_loss=49000)
+```
+
 ## Modules
 
 | Module | Purpose |
@@ -211,7 +240,9 @@ All templates are fully parameterizable and pass static validation.
 | `vibetrading.backtest` | `BacktestEngine`, `run()`, `StaticSandbox` |
 | `vibetrading.evolution` | `StrategyEvolver`, `evolve()` |
 | `vibetrading.tools` | `download_data()`, `load_csv()` |
-| `vibetrading.templates` | `momentum`, `mean_reversion`, `grid`, `dca` |
+| `vibetrading.templates` | `momentum`, `mean_reversion`, `grid`, `dca`, `multi_momentum` |
+| `vibetrading.indicators` | `sma`, `ema`, `rsi`, `bbands`, `atr`, `macd`, `stochastic`, `vwap` |
+| `vibetrading.sizing` | `kelly_size`, `fixed_fraction_size`, `volatility_adjusted_size`, `risk_per_trade_size` |
 | `vibetrading.cli` | Command-line interface |
 
 ## Examples
