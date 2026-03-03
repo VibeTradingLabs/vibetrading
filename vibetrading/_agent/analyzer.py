@@ -34,17 +34,17 @@ Your job is to provide a thorough, honest assessment of the strategy's performan
 ## Analysis Framework
 
 Evaluate the strategy across these dimensions:
-1. **Return & Risk** — Total return, risk-adjusted return (Sharpe), drawdown severity
-2. **Trade Quality** — Win rate, average trade duration, trade frequency
-3. **Cost Efficiency** — Transaction fees vs returns, funding costs
-4. **Robustness** — Consistency of returns, drawdown recovery, liquidation risk
+1. **Return & Risk** — Total return, CAGR, Sharpe ratio, Sortino ratio, Calmar ratio, drawdown severity and duration
+2. **Trade Quality** — Win rate, profit factor, expectancy, avg win/loss ratio, consecutive streaks, trade frequency
+3. **Cost Efficiency** — Transaction fees vs returns, funding revenue, slippage impact
+4. **Robustness** — Consistency of returns, drawdown recovery speed, liquidation risk, streak analysis
 
 ## Scoring Guidelines
-- **9-10**: Exceptional. Sharpe > 2.0, drawdown < 10%, strong win rate
-- **7-8**: Good. Positive risk-adjusted returns, manageable drawdowns
-- **5-6**: Mediocre. Marginal returns or concerning risk metrics
-- **3-4**: Poor. Negative returns or extreme drawdowns
-- **1-2**: Failing. Liquidation, massive losses, or non-functional
+- **9-10**: Exceptional. Sharpe > 2.0, Sortino > 3.0, drawdown < 10%, profit factor > 2.5, win rate > 60%
+- **7-8**: Good. Sharpe > 1.0, positive risk-adjusted returns, profit factor > 1.5, manageable drawdowns
+- **5-6**: Mediocre. Marginal returns, Sharpe 0.5-1.0, profit factor ~1.0, concerning risk metrics
+- **3-4**: Poor. Negative returns, Sharpe < 0.5, or extreme drawdowns > 30%
+- **1-2**: Failing. Liquidation, massive losses, profit factor < 0.5, or non-functional
 
 ## Output Format
 
@@ -138,9 +138,14 @@ class BacktestAnalysisResult:
         if metrics:
             parts.append("\n**Key Metrics**:")
             parts.append(f"  - Total Return: {metrics.get('total_return', 0):.2%}")
+            parts.append(f"  - CAGR: {metrics.get('cagr', 0):.2%}")
             parts.append(f"  - Sharpe Ratio: {metrics.get('sharpe_ratio', 0):.2f}")
+            parts.append(f"  - Sortino Ratio: {metrics.get('sortino_ratio', 0):.2f}")
+            parts.append(f"  - Calmar Ratio: {metrics.get('calmar_ratio', 0):.2f}")
             parts.append(f"  - Max Drawdown: {metrics.get('max_drawdown', 0):.2%}")
             parts.append(f"  - Win Rate: {metrics.get('win_rate', 0):.2%}")
+            parts.append(f"  - Profit Factor: {metrics.get('profit_factor', 0):.2f}")
+            parts.append(f"  - Expectancy: ${metrics.get('expectancy', 0):.2f}/trade")
             parts.append(f"  - Total Trades: {metrics.get('number_of_trades', 0)}")
 
         parts.append(
@@ -158,10 +163,23 @@ def _prepare_metrics_summary(backtest_results: dict[str, Any]) -> str:
     if metrics:
         total_return = metrics.get("total_return", 0)
         lines.append(f"- Total Return: {total_return:.2%}")
+        lines.append(f"- CAGR: {metrics.get('cagr', 0):.2%}")
         lines.append(f"- Sharpe Ratio: {metrics.get('sharpe_ratio', 0):.4f}")
+        lines.append(f"- Sortino Ratio: {metrics.get('sortino_ratio', 0):.4f}")
+        lines.append(f"- Calmar Ratio: {metrics.get('calmar_ratio', 0):.4f}")
         lines.append(f"- Max Drawdown: {metrics.get('max_drawdown', 0):.2%}")
+        lines.append(f"- Max Drawdown Duration: {metrics.get('max_drawdown_duration_hours', 0):.1f}h")
         lines.append(f"- Win Rate: {metrics.get('win_rate', 0):.2%}")
+        lines.append(f"- Profit Factor: {metrics.get('profit_factor', 0):.2f}")
+        lines.append(f"- Expectancy: ${metrics.get('expectancy', 0):.2f}/trade")
         lines.append(f"- Number of Trades: {metrics.get('number_of_trades', 0)}")
+        lines.append(f"- Winning/Losing: {metrics.get('winning_trades', 0)}/{metrics.get('losing_trades', 0)}")
+        lines.append(f"- Avg Win: ${metrics.get('avg_win', 0):.2f}")
+        lines.append(f"- Avg Loss: ${metrics.get('avg_loss', 0):.2f}")
+        lines.append(f"- Largest Win: ${metrics.get('largest_win', 0):.2f}")
+        lines.append(f"- Largest Loss: ${metrics.get('largest_loss', 0):.2f}")
+        lines.append(f"- Max Consecutive Wins: {metrics.get('max_consecutive_wins', 0)}")
+        lines.append(f"- Max Consecutive Losses: {metrics.get('max_consecutive_losses', 0)}")
         lines.append(f"- Avg Trade Duration: {metrics.get('average_trade_duration_hours', 0):.1f}h")
         lines.append(f"- Total TX Fees: ${metrics.get('total_tx_fees', 0):.2f}")
         lines.append(f"- Funding Revenue: ${metrics.get('funding_revenue', 0):.2f}")
