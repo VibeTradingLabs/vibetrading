@@ -199,6 +199,34 @@ Use limit for entries and profit targets. Use market for stop losses and urgent 
 ### NaN Protocol
 `get_spot_price()` and `get_perp_price()` return `float('nan')` when price is unavailable.
 Always check with `math.isnan(price)` before calculations. NaN propagates through all arithmetic.
+
+### Built-in Indicators (vibetrading.indicators)
+
+Pure-pandas implementations available without the `ta` library:
+
+```python
+from vibetrading.indicators import rsi, sma, ema, bbands, atr, macd, stochastic, vwap
+```
+
+- `sma(series, period)` → Simple Moving Average
+- `ema(series, period)` → Exponential Moving Average
+- `rsi(series, period=14)` → Relative Strength Index (0-100)
+- `bbands(series, period=20, std=2.0)` → (upper, middle, lower) Bollinger Bands
+- `atr(high, low, close, period=14)` → Average True Range
+- `macd(series, fast=12, slow=26, signal=9)` → (macd_line, signal_line, histogram)
+- `stochastic(high, low, close, k_period=14, d_period=3)` → (%K, %D)
+- `vwap(high, low, close, volume)` → Volume Weighted Average Price
+
+### Position Sizing Utilities (vibetrading.sizing)
+
+```python
+from vibetrading.sizing import kelly_size, fixed_fraction_size, volatility_adjusted_size, risk_per_trade_size
+```
+
+- `kelly_size(win_rate, avg_win, avg_loss, balance, price, leverage=1, half_kelly=True)` → Kelly Criterion sizing
+- `fixed_fraction_size(fraction, balance, price, leverage=1)` → Fixed % of equity
+- `volatility_adjusted_size(atr, balance, price, risk_pct=0.02, leverage=1)` → ATR-based inverse volatility
+- `risk_per_trade_size(balance, risk_pct, entry, stop_loss, leverage=1)` → Fixed $ risk on stop distance
 """.strip()
 
 
