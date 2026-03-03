@@ -3,7 +3,15 @@
 import pytest
 
 from vibetrading._agent.validator import validate_strategy
-from vibetrading.templates import dca, get_template, grid, list_templates, mean_reversion, momentum
+from vibetrading.templates import (
+    dca,
+    get_template,
+    grid,
+    list_templates,
+    mean_reversion,
+    momentum,
+    multi_momentum,
+)
 
 
 class TestTemplateRegistry:
@@ -102,3 +110,28 @@ class TestDCATemplate:
         code = dca.generate()
         result = validate_strategy(code)
         assert result.is_valid, f"Validation failed: {result.errors}"
+
+
+class TestMultiMomentumTemplate:
+    def test_generate_default(self):
+        code = multi_momentum.generate()
+        assert "@vibe" in code
+        assert "ASSETS" in code
+        assert "for asset in ASSETS" in code
+
+    def test_generate_custom_assets(self):
+        code = multi_momentum.generate(assets=["BTC", "ETH", "SOL", "AVAX"])
+        assert "AVAX" in code
+
+    def test_generate_custom_params(self):
+        code = multi_momentum.generate(leverage=5, tp_pct=0.05)
+        assert "LEVERAGE = 5" in code
+        assert "TP_PCT = 0.05" in code
+
+    def test_generated_code_validates(self):
+        code = multi_momentum.generate()
+        result = validate_strategy(code)
+        assert result.is_valid, f"Validation failed: {result.errors}"
+
+    def test_list_includes_multi_momentum(self):
+        assert "multi_momentum" in list_templates()

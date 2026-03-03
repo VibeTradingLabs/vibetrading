@@ -18,13 +18,14 @@ Usage::
     code = template.generate(asset="SOL")
 """
 
-from . import dca, grid, mean_reversion, momentum
+from . import dca, grid, mean_reversion, momentum, multi_momentum
 
 _TEMPLATES = {
     "momentum": momentum,
     "mean_reversion": mean_reversion,
     "grid": grid,
     "dca": dca,
+    "multi_momentum": multi_momentum,
 }
 
 
@@ -58,4 +59,5 @@ __all__ = [
     "list_templates",
     "mean_reversion",
     "momentum",
+    "multi_momentum",
 ]
