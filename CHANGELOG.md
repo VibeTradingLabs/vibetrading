@@ -8,7 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Test suite covering validator, decorator, models, sandbox, metrics, backtest engine, and prompt builder
+- **Enhanced metrics**: Sortino ratio, Calmar ratio, CAGR, profit factor, expectancy, consecutive win/loss streaks, largest win/loss, max drawdown duration, winning/losing trade counts
+- **CLI tool**: `vibetrading backtest`, `vibetrading validate`, `vibetrading download`, `vibetrading version` — run everything from the terminal with `--json` output support
+- **Slippage modeling**: `slippage_bps` parameter for realistic market order simulation (applies adverse price movement to buys/longs up, sells/shorts down)
+- **py.typed marker** for PEP 561 typing support
+- Test suite: 120 tests covering validator, decorator, models, sandbox, metrics, backtest engine, prompt builder, slippage, and CLI
 - CI pipeline with GitHub Actions (lint + test on Python 3.10/3.11/3.12)
 - Ruff configuration for linting and formatting
 - pytest configuration with coverage support
@@ -16,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Renamed `examples/07_envole_strategy.py` → `examples/07_evolve_strategy.py` (typo)
+- Fixed 464 lint errors across the codebase
 
 ## [0.1.6] - 2025-02-26
 
