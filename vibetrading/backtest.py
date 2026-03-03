@@ -25,7 +25,7 @@ from typing import Any
 
 from ._core.backtest import BacktestEngine
 from ._core.static_sandbox import StaticSandbox
-from ._metrics.calculator import MetricsCalculator
+from ._metrics.calculator import MetricsCalculator, TradeStats
 
 
 def run(
@@ -38,6 +38,7 @@ def run(
     exchange: str = "binance",
     data: dict | None = None,
     mute_strategy_prints: bool = False,
+    slippage_bps: float = 0.0,
 ) -> dict[str, Any] | None:
     """
     Run a backtest in one call.
@@ -51,6 +52,8 @@ def run(
         exchange: Exchange name for data lookup (default: "binance").
         data: Pre-loaded data dict mapping "ASSET/interval" to DataFrames.
         mute_strategy_prints: Suppress print output from strategy code.
+        slippage_bps: Simulated slippage in basis points for market orders
+                      (e.g. 5.0 = 0.05% adverse price movement). Default: 0.
 
     Returns:
         Dict with trades, metrics, simulation_info, and final_balances.
@@ -63,13 +66,15 @@ def run(
         exchange=exchange,
         data=data,
         mute_strategy_prints=mute_strategy_prints,
+        slippage_bps=slippage_bps,
     )
     return engine.run(strategy_code)
 
 
 __all__ = [
     "BacktestEngine",
-    "StaticSandbox",
     "MetricsCalculator",
+    "StaticSandbox",
+    "TradeStats",
     "run",
 ]

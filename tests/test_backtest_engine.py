@@ -105,11 +105,23 @@ class TestBacktestEngine:
         )
         result = engine.run(SIMPLE_STRATEGY)
         metrics = result["metrics"]
+        # Core metrics
         assert "total_return" in metrics
         assert "sharpe_ratio" in metrics
         assert "max_drawdown" in metrics
         assert "win_rate" in metrics
         assert "number_of_trades" in metrics
+        # Enhanced metrics
+        assert "sortino_ratio" in metrics
+        assert "calmar_ratio" in metrics
+        assert "cagr" in metrics
+        assert "profit_factor" in metrics
+        assert "expectancy" in metrics
+        assert "max_consecutive_wins" in metrics
+        assert "max_consecutive_losses" in metrics
+        assert "largest_win" in metrics
+        assert "largest_loss" in metrics
+        assert "max_drawdown_duration_hours" in metrics
 
     def test_no_vibe_decorator_raises(self):
         bad_code = """

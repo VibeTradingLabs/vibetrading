@@ -115,6 +115,7 @@ class StaticSandbox(VibeSandboxBase):
         supported_assets: list[str] | None = None,
         mute_strategy_prints: bool = False,
         data: dict[tuple[str, str], pd.DataFrame] | None = None,
+        slippage_bps: float = 0.0,
     ):
         """
         Args:
@@ -127,6 +128,8 @@ class StaticSandbox(VibeSandboxBase):
             mute_strategy_prints: Suppress print output from strategy code.
             data: Pre-loaded data dict mapping (symbol, interval) -> DataFrame.
                   If provided, CSV cache is skipped entirely.
+            slippage_bps: Simulated slippage in basis points for market orders
+                          (e.g. 5.0 = 0.05% adverse price movement). Default: 0.
         """
         import sys
 
@@ -139,6 +142,7 @@ class StaticSandbox(VibeSandboxBase):
 
         self.config: dict[str, Any] = {"fee_rate": self.DEFAULT_FEE_RATE}
         self.fee_rate = fee_rate if fee_rate is not None else self.DEFAULT_FEE_RATE
+        self.slippage_bps = slippage_bps
 
         # Balances & tracking
         self.balances: dict[str, float] = (
@@ -202,6 +206,27 @@ class StaticSandbox(VibeSandboxBase):
 
         print(f"StaticSandbox ready: {self.exchange} | {self.start_date} -> {self.end_date}")
         sys.stdout.flush()
+
+    # ── Slippage ────────────────────────────────────────────────────────
+    def _apply_slippage(self, price: float, side: str) -> float:
+        """Apply simulated slippage to a market-order price.
+
+        Buys/longs slip up (worse price), sells/shorts slip down (worse price).
+
+        Args:
+            price: The reference price before slippage.
+            side: Order side — 'buy', 'long', 'sell', or 'short'.
+
+        Returns:
+            Price adjusted for slippage.
+        """
+        if self.slippage_bps <= 0:
+            return price
+        factor = self.slippage_bps / 10_000
+        if side in ("buy", "long"):
+            return price * (1 + factor)
+        else:
+            return price * (1 - factor)
 
     # ── Symbol helpers ─────────────────────────────────────────────────
     def _normalize_asset(self, asset: str) -> str:
@@ -822,6 +847,7 @@ class StaticSandbox(VibeSandboxBase):
             cp = self.get_price(asset)
             if math.isnan(cp) or cp <= 0:
                 return SpotOrderResponse.Error(f"Invalid price for {asset}").to_dict()
+            cp = self._apply_slippage(cp, "buy")
             self._spot_trade_execution(asset, quantity, cp, "buy")
             order = {
                 "order_id": self._generate_order_id(),
@@ -857,6 +883,7 @@ class StaticSandbox(VibeSandboxBase):
             cp = self.get_price(asset)
             if math.isnan(cp) or cp <= 0:
                 return SpotOrderResponse.Error(f"Invalid price for {asset}").to_dict()
+            cp = self._apply_slippage(cp, "sell")
             self._spot_trade_execution(asset, quantity, cp, "sell")
             order = {
                 "order_id": self._generate_order_id(),
@@ -891,6 +918,7 @@ class StaticSandbox(VibeSandboxBase):
             cp = self.get_price(asset)
             if math.isnan(cp) or cp <= 0:
                 return PerpOrderResponse.Error(f"Invalid price for {asset}").to_dict()
+            cp = self._apply_slippage(cp, "long")
             self._futures_trade_execution(asset, quantity, cp, "long", lev)
             order = {
                 "order_id": self._generate_order_id(),
@@ -925,6 +953,7 @@ class StaticSandbox(VibeSandboxBase):
             cp = self.get_price(asset)
             if math.isnan(cp) or cp <= 0:
                 return PerpOrderResponse.Error(f"Invalid price for {asset}").to_dict()
+            cp = self._apply_slippage(cp, "short")
             self._futures_trade_execution(asset, quantity, cp, "short", lev)
             order = {
                 "order_id": self._generate_order_id(),

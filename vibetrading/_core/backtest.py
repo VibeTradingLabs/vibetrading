@@ -97,6 +97,7 @@ class BacktestEngine:
         exchange: str = "binance",
         mute_strategy_prints: bool = False,
         data: dict | None = None,
+        slippage_bps: float = 0.0,
     ):
         """
         Initialize the backtesting environment.
@@ -111,6 +112,8 @@ class BacktestEngine:
             data: Pre-loaded data dict mapping
                   ``"ASSET/interval"`` keys to DataFrames. When provided,
                   the sandbox skips CSV lookup and uses this data directly.
+            slippage_bps: Simulated slippage in basis points for market orders
+                          (e.g. 5.0 = 0.05% adverse price movement). Default: 0.
         """
         if interval not in SUPPORTED_INTERVALS:
             raise ValueError(f"Unsupported interval: {interval}. Supported: {list(SUPPORTED_INTERVALS.keys())}")
@@ -138,6 +141,7 @@ class BacktestEngine:
             initial_balances=self._initial_balances_config,
             mute_strategy_prints=self.mute_strategy_prints,
             data=sandbox_data,
+            slippage_bps=slippage_bps,
         )
         self.sandbox.set_backtest_interval(self.interval)
 
@@ -569,12 +573,30 @@ class BacktestEngine:
         df["returns"] = df["total_value"].pct_change()
         df["cummax"] = df["total_value"].cummax()
         df["drawdown"] = (df["total_value"] - df["cummax"]) / df["cummax"]
-        return {
+
+        # Merge all metrics from calculator + engine-level extras
+        result = {
             "total_return": metrics["total_return"],
+            "cagr": metrics.get("cagr", 0.0),
             "number_of_trades": metrics["total_trades"],
             "max_drawdown": metrics["max_drawdown"],
+            "max_drawdown_duration_hours": metrics.get("max_drawdown_duration_hours", 0.0),
             "sharpe_ratio": metrics["sharpe_ratio"],
+            "sortino_ratio": metrics.get("sortino_ratio", 0.0),
+            "calmar_ratio": metrics.get("calmar_ratio", 0.0),
             "win_rate": metrics["win_rate"],
+            "profit_factor": metrics.get("profit_factor", 0.0),
+            "expectancy": metrics.get("expectancy", 0.0),
+            "avg_win": metrics.get("avg_win", 0.0),
+            "avg_loss": metrics.get("avg_loss", 0.0),
+            "largest_win": metrics.get("largest_win", 0.0),
+            "largest_loss": metrics.get("largest_loss", 0.0),
+            "max_consecutive_wins": metrics.get("max_consecutive_wins", 0),
+            "max_consecutive_losses": metrics.get("max_consecutive_losses", 0),
+            "winning_trades": metrics.get("winning_trades", 0),
+            "losing_trades": metrics.get("losing_trades", 0),
+            "avg_trade_pnl": metrics.get("avg_trade_pnl", 0.0),
+            "total_pnl": metrics.get("total_pnl", 0.0),
             "funding_revenue": metrics["funding_revenue"],
             "total_tx_fees": metrics["total_tx_fees"],
             "average_trade_duration_hours": metrics["average_trade_duration_hours"],
@@ -584,3 +606,4 @@ class BacktestEngine:
             "returns_std": df["returns"].std() if len(df["returns"]) > 1 else 0.0,
             "returns_mean": df["returns"].mean() if len(df["returns"]) > 1 else 0.0,
         }
+        return result
