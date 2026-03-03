@@ -423,6 +423,9 @@ class BacktestEngine:
                 if spec is None:
                     raise ImportError("Cannot create vibetrading module spec")
                 mock_mod = importlib.util.module_from_spec(spec)
+                # Mark as a package so submodule imports (vibetrading.indicators, etc.) work
+                mock_mod.__path__ = []
+                mock_mod.__package__ = "vibetrading"
 
                 error_handler = StrategyErrorHandler(self.sandbox, strategy_code)
 
@@ -483,6 +486,29 @@ class BacktestEngine:
                     setattr(mock_mod, name, obj)
                 sys.modules["vibetrading"] = mock_mod
                 exec_globals.update(funcs)
+
+                # Register submodules so strategies can import them
+                try:
+                    from vibetrading import indicators as _indicators_mod
+
+                    sys.modules["vibetrading.indicators"] = _indicators_mod
+                    mock_mod.indicators = _indicators_mod
+                except ImportError:
+                    pass
+                try:
+                    from vibetrading import sizing as _sizing_mod
+
+                    sys.modules["vibetrading.sizing"] = _sizing_mod
+                    mock_mod.sizing = _sizing_mod
+                except ImportError:
+                    pass
+                try:
+                    from vibetrading import templates as _templates_mod
+
+                    sys.modules["vibetrading.templates"] = _templates_mod
+                    mock_mod.templates = _templates_mod
+                except ImportError:
+                    pass
 
                 exec(strategy_code, exec_globals)
                 if not self.registered_strategy_callbacks:
