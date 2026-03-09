@@ -7,6 +7,7 @@ Requires: pip install vibetrading[hyperliquid]
 
 import logging
 import time
+from datetime import timedelta
 from typing import Any
 
 import pandas as pd
@@ -81,10 +82,10 @@ class HyperliquidSandbox(LiveSandboxBase):
                 sz_dec = int(asset.get("szDecimals", 6))
                 max_lev = int(asset.get("maxLeverage", 20))
                 self.perp_meta[name] = PerpMeta(
+                    asset=name,
                     symbol=f"{name}/USDC:USDC",
-                    name=name,
                     sz_decimals=sz_dec,
-                    price_decimals=6 - sz_dec,
+                    price_precision=6 - sz_dec,
                     max_leverage=max_lev,
                 )
             spot_info = self.info.spot_meta()
@@ -99,10 +100,10 @@ class HyperliquidSandbox(LiveSandboxBase):
                         tok_name = tok_name[1:]
                     sz_dec = int(tok["szDecimals"])
                     self.spot_meta[tok_name] = SpotMeta(
+                        asset=tok_name,
                         symbol=f"{tok_name}/USDC",
-                        name=tok_name,
                         sz_decimals=sz_dec,
-                        price_decimals=8 - sz_dec,
+                        price_precision=8 - sz_dec,
                     )
                     self.asset_spot_mapping[tok_name] = m["name"]
                     self.spot_asset_mapping[m["name"]] = tok_name
@@ -226,7 +227,11 @@ class HyperliquidSandbox(LiveSandboxBase):
     def _fetch_ohlcv(self, asset: str, interval: str, limit: int, is_spot: bool = False) -> pd.DataFrame:
         try:
             now_ms = int(time.time() * 1000)
-            interval_ms = SUPPORTED_INTERVALS.get(interval, 3600) * 1000
+            interval_td_or_seconds = SUPPORTED_INTERVALS.get(interval, timedelta(hours=1))
+            if hasattr(interval_td_or_seconds, "total_seconds"):
+                interval_ms = int(interval_td_or_seconds.total_seconds() * 1000)
+            else:
+                interval_ms = int(float(interval_td_or_seconds) * 1000)
             start_ms = now_ms - interval_ms * limit
             candles = self.info.candles_snapshot(asset, interval, start_ms, now_ms)
             if not candles:
