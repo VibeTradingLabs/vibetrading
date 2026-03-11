@@ -341,6 +341,27 @@ class StaticSandbox(VibeSandboxBase):
             return self._backtest_interval
         return "1h"
 
+    def _aligned_time_for_index(self, index: "pd.DatetimeIndex") -> "pd.Timestamp":
+        """Align current_time to the index's timezone and resolution.
+
+        Pandas DatetimeIndex can have non-nanosecond resolution (e.g. ms). Passing a
+        nanosecond-resolution Timestamp with microseconds into index.asof() can raise:
+        "Cannot losslessly convert units".
+
+        We round as needed (round_ok=True) to avoid breaking user workflows.
+        """
+        t = pd.Timestamp(self.current_time)
+        tz = getattr(index.dtype, "tz", None)
+        if tz is not None:
+            if t.tzinfo is None:
+                t = t.tz_localize(tz)
+            else:
+                t = t.tz_convert(tz)
+        unit = getattr(index.dtype, "unit", None)
+        if unit and unit != "ns":
+            t = t.as_unit(unit, round_ok=True)
+        return t
+
     def _get_spot_price(self, asset: str) -> float:
         ck = (f"spot_{asset}", self.current_time)
         cached = self._get_cached_price(ck)
@@ -350,7 +371,8 @@ class StaticSandbox(VibeSandboxBase):
         data = self._load_data(symbol, self._get_optimal_timeframe())
         if data.empty:
             raise RuntimeError(f"No spot data for {asset}")
-        t = data.index.asof(self.current_time)
+        ct = self._aligned_time_for_index(data.index)
+        t = data.index.asof(ct)
         if pd.isna(t):
             t = data.index[0]
         price = float(np.asarray(data.loc[t, "close"]).item())
@@ -366,7 +388,8 @@ class StaticSandbox(VibeSandboxBase):
         data = self._load_data(symbol, self._get_optimal_timeframe())
         if data.empty:
             raise RuntimeError(f"No futures data for {asset}")
-        t = data.index.asof(self.current_time)
+        ct = self._aligned_time_for_index(data.index)
+        t = data.index.asof(ct)
         if pd.isna(t):
             t = data.index[0]
         price = float(np.asarray(data.loc[t, "close"]).item())
@@ -399,7 +422,8 @@ class StaticSandbox(VibeSandboxBase):
         data = self._load_data(self._asset_to_spot_symbol(asset), interval)
         if data.empty:
             return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
-        return data[data.index <= self.current_time].tail(limit)[["open", "high", "low", "close", "volume"]].copy()
+        ct = self._aligned_time_for_index(data.index)
+        return data[data.index <= ct].tail(limit)[["open", "high", "low", "close", "volume"]].copy()
 
     def get_futures_ohlcv(self, asset: str, interval: str, limit: int) -> pd.DataFrame:
         asset = self._normalize_asset(asset)
@@ -414,7 +438,8 @@ class StaticSandbox(VibeSandboxBase):
             return pd.DataFrame(columns=["open", "high", "low", "close", "volume", "fundingRate", "openInterest"])
         cols = ["open", "high", "low", "close", "volume", "fundingRate", "openInterest"]
         present = [c for c in cols if c in data.columns]
-        result = data[data.index <= self.current_time].tail(limit)[present].copy()
+        ct = self._aligned_time_for_index(data.index)
+        result = data[data.index <= ct].tail(limit)[present].copy()
         for c in cols:
             if c not in result.columns:
                 result[c] = np.nan
