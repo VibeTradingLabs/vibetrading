@@ -38,7 +38,11 @@ Thumbs.db
 # pytest / coverage
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
+
+# Local reports/artifacts
+reports/
 
 # mypy
 .mypy_cache/
