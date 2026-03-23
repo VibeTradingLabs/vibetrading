@@ -86,7 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Multi-exchange support: Hyperliquid, Paradex, Lighter, Aster, Extended
-- Strategy evolution via iterative generate-backtest-analyze loops
+- ~~Strategy evolution via iterative generate-backtest-analyze loops~~ *(removed in v0.4.0)*
 - Backtest engine with realistic simulation (leverage, funding rates, liquidation)
 - LLM-powered strategy generation and analysis
 - Static validation with closed-loop error feedback
